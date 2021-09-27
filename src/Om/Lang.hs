@@ -1,10 +1,15 @@
+{-# LANGUAGE DeriveTraversable  #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell    #-}
 module Om.Lang where
 
-import Data.Text (Text)
+import Data.Eq.Deriving (deriveEq1)
+import Data.Fix (Fix(..))
 import Data.Functor.Foldable
-
-type Name  = Text
-type Names = [Name]
+import Data.Ord.Deriving (deriveOrd1)
+import Om.Util
+import Text.Show.Deriving (deriveShow1)
 
 type OMatrix a = [(Names, a)]
 
@@ -47,8 +52,18 @@ omIf :: Om p -> Om p -> Om p -> Om p
 omIf = embed3 If
 {-# INLINE omIf #-}
 
-omPat :: Om p -> CMatrix Om p -> Om p
+omPat :: Om p -> OMatrix (Om p) -> Om p
 omPat = embed2 Pat
 {-# INLINE omPat #-}
 
+deriving instance (Show p, Show a) => Show (OmF p a)
+deriving instance (Eq   p, Eq   a) => Eq   (OmF p a)
+deriving instance (Ord  p, Ord  a) => Ord  (OmF p a)
 
+deriveShow1 ''OmF 
+deriveEq1   ''OmF
+deriveOrd1  ''OmF 
+
+deriving instance Functor     (OmF p)
+deriving instance Foldable    (OmF p)
+deriving instance Traversable (OmF p)

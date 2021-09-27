@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Om.Lang
 
 main :: IO ()
-main = someFunc
+main = print "OK"
