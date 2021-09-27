@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveTraversable  #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE StrictData         #-}
 {-# LANGUAGE TemplateHaskell    #-}
 module Om.Lang where
 
@@ -13,24 +14,24 @@ import Text.Show.Deriving (deriveShow1)
 
 type OMatrix a = [(Names, a)]
 
---data OVar 
---    = PrimFun Name
---    | Name Name
-
 data OmF p a
-    = Var Name           
-    | Lit p              
-    | App [a]            
-    | Let Name a a       
-    | Lam Name a         
-    | If  a a a          
-    | Pat a (OMatrix a)  
+    = Var Name
+    | Lit p
+    | App [a]
+    | Let Name a a
+    | If a a a
+    | Lam Name a
+    | Pat a (OMatrix a)
 
 type Om p = Fix (OmF p)
 
 omVar :: Name -> Om p
 omVar = embed1 Var
 {-# INLINE omVar #-}
+
+omPfx :: Name -> Om p
+omPfx = omVar . ("$" <>)
+{-# INLINE omPfx #-}
 
 omLit :: p -> Om p
 omLit = embed1 Lit
@@ -44,13 +45,13 @@ omLet :: Name -> Om p -> Om p -> Om p
 omLet = embed3 Let
 {-# INLINE omLet #-}
 
-omLam :: Name -> Om p -> Om p
-omLam = embed2 Lam
-{-# INLINE omLam #-}
-
 omIf :: Om p -> Om p -> Om p -> Om p
 omIf = embed3 If
 {-# INLINE omIf #-}
+
+omLam :: Name -> Om p -> Om p
+omLam = embed2 Lam
+{-# INLINE omLam #-}
 
 omPat :: Om p -> OMatrix (Om p) -> Om p
 omPat = embed2 Pat
@@ -60,9 +61,9 @@ deriving instance (Show p, Show a) => Show (OmF p a)
 deriving instance (Eq   p, Eq   a) => Eq   (OmF p a)
 deriving instance (Ord  p, Ord  a) => Ord  (OmF p a)
 
-deriveShow1 ''OmF 
+deriveShow1 ''OmF
 deriveEq1   ''OmF
-deriveOrd1  ''OmF 
+deriveOrd1  ''OmF
 
 deriving instance Functor     (OmF p)
 deriving instance Foldable    (OmF p)
