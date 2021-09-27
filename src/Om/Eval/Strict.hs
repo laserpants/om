@@ -8,7 +8,9 @@ module Om.Eval.Strict where
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Functor.Foldable
+import Data.List (intersperse)
 import Data.Map.Strict (Map)
+import Data.Text (unpack)
 import Data.Tuple.Extra (first)
 import Om.Lang
 import Om.Util
@@ -27,9 +29,11 @@ data Value p m
 toString :: (Show p) => Value p m -> String
 toString = \case
     Value p      -> show p
-    Data con vs  -> show con <> " " <> show (toString <$> vs)
+    Data con vs  -> unpack con <> " " <> flatten (toString <$> vs)
     Closure{}    -> "((function))"
     _            -> "((internal))"
+  where
+    flatten strs = "[" <> foldr (<>) "" (intersperse ", " strs) <> "]"
 
 data Fun p
     = Fun1 (p -> Maybe p)
@@ -79,23 +83,25 @@ data Error
     | RuntimeError
     deriving (Show)
 
-newtype Eval p a = Eval { unEval :: ReaderT (EvalEnv p (Eval p)) (Either Error) a }
+type Hooks p m = Name -> m (Maybe (Value p m))
+
+newtype Eval p a = Eval { unEval :: ReaderT (EvalEnv p (Eval p), Hooks p (Eval p)) (Either Error) a }
     deriving
       ( Functor
       , Applicative
       , Monad
       , MonadError Error
-      , MonadReader (EvalEnv p (Eval p)) )
+      , MonadReader (EvalEnv p (Eval p), Hooks p (Eval p)) )
 
-runEval :: Eval p a -> EvalEnv p (Eval p) -> Either Error a
+runEval :: Eval p a -> (EvalEnv p (Eval p), Hooks p (Eval p)) -> Either Error a
 runEval = runReaderT . unEval
 
 type Result p = Value p (Eval p)
 
 type PrimEnv p = [(Name, Eval p (Result p))]
 
-evalExpr :: (PrimType p Bool) => Om p -> PrimEnv p -> Either Error (Result p)
-evalExpr om funs = runEval (eval om) (foldr (uncurry Map.insert) mempty env)
+evalExpr :: (PrimType p Bool) => Om p -> PrimEnv p -> Hooks p (Eval p) -> Either Error (Result p)
+evalExpr om funs lup = runEval (eval om) (foldr (uncurry Map.insert) mempty env, lup)
   where
     env = funs <#> first ("$" <>)
 
@@ -121,7 +127,7 @@ primData :: (Monad m) => Name -> [Value p m] -> m (Value p m)
 primData con vs = pure (Data con vs)
 
 eval
-  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalEnv p m) m)
+  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
   => Om p
   -> m (Value p m)
 eval = cata $ \case
@@ -129,11 +135,11 @@ eval = cata $ \case
     Var var    -> evalVar var
     App exs    -> foldl1 evalApp exs
     Lit lit    -> pure (Value lit)
-    Lam var e1 -> asks (Closure var e1)
+    Lam var e1 -> asks (Closure var e1 . fst)
 
     Let var e1 e2 -> do
         e <- e1
-        local (Map.insert var (pure e)) e2
+        (local . first) (Map.insert var (pure e)) e2
 
     If e1 e2 e3 -> do
         e <- e1
@@ -152,7 +158,7 @@ toBool (Value v) = fromPrim v
 toBool _         = Nothing
 
 evalApp
-  :: (MonadError Error m, MonadReader (EvalEnv p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, s) m)
   => m (Value p m)
   -> m (Value p m)
   -> m (Value p m)
@@ -162,13 +168,16 @@ evalApp fx arg = do
     case fun of
 
         Closure var body closure ->
-            local (Map.insert var (pure val) . (closure <>)) body
+            (local . first) (Map.insert var (pure val) . (closure <>)) body
 
         PrimFun fun args ->
             evalPrim fun (val:args)
 
+        Data con args ->
+            pure (Data con (args <> [val]))
+
 evalPrim
-  :: (MonadError Error m, MonadReader (EvalEnv p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, s) m)
   => Fun p
   -> [Value p m]
   -> m (Value p m)
@@ -187,11 +196,16 @@ evalPrim fun args
     literal _           = throwError RuntimeError
 
 evalVar
-  :: (MonadError Error m, MonadReader (EvalEnv p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
   => Name
   -> m (Value p m)
 evalVar var = do
-    mval <- asks (Map.lookup var)
-    case mval of
-        Just val -> val
-        Nothing  -> throwError (UnboundIdentifier var)
+    hook <- ask <#> snd
+    val1 <- hook var
+    case val1 of
+        Just val -> pure val
+        Nothing -> do
+            val2 <- asks (Map.lookup var . fst)
+            case val2 of
+                Just val -> val
+                Nothing  -> throwError (UnboundIdentifier var)

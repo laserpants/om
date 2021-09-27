@@ -30,6 +30,13 @@ env =
     , ("mul" , primFun2 ((\a b -> a * b) :: Int -> Int -> Int ))
     ]
 
+builtin :: Name -> Eval Prim (Maybe (Result Prim))
+builtin var =
+    case var of
+        "Cons" -> pure (Just (Data "Cons" []))
+        "Nil"  -> pure (Just (Data "Nil" []))
+        _      -> pure Nothing
+
 -- let
 --   fact =
 --     (n =>
@@ -61,7 +68,27 @@ test1Expr =
         (omApp [omVar "fact", omLit (PInt 8)])
 
 test1 :: Either Error String
-test1 = evalExpr test1Expr env <#> toString
+test1 = evalExpr test1Expr env builtin <#> toString
+
+-- Cons [1, Cons [2, Nil []]]
+test2Expr :: Om Prim
+test2Expr =
+    omApp
+        [ omVar "Cons"
+        , omLit (PInt 1)
+        , omApp
+            [ omVar "Cons"
+            , omLit (PInt 2)
+            , omApp
+                [ omVar "Cons"
+                , omLit (PInt 3)
+                , omVar "Nil"
+                ]
+            ]
+        ]
+
+test2 :: Either Error String
+test2 = evalExpr test2Expr env builtin <#> toString
 
 main :: IO ()
 main = print "OK"
