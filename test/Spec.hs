@@ -34,6 +34,7 @@ testEval dscr om exp =
 
 ------------------------------------------------------------------------------------------------------
 
+-- Cons(1, Cons(2, Nil))
 example1 :: Om BasicPrim
 example1 =
     omData "Cons"
