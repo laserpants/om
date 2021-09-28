@@ -71,15 +71,15 @@ main = do
                 (omLet "fact"
                     (omLam "n"
                         (omIf
-                            (omApp [omPfx "eq", omVar "n", omLit (PInt 0)])
+                            (omApp [omPrim "eq", omVar "n", omLit (PInt 0)])
                             (omLit (PInt 1))
                             (omApp
-                                [ omPfx "mul"
+                                [ omPrim "mul"
                                 , omVar "n"
                                 , omApp
                                     [ omVar "fact"
                                     , omApp
-                                        [ omPfx "sub"
+                                        [ omPrim "sub"
                                         , omVar "n"
                                         , omLit (PInt 1)
                                         ]

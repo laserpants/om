@@ -28,9 +28,9 @@ omVar :: Name -> Om p
 omVar = embed1 Var
 {-# INLINE omVar #-}
 
-omPfx :: Name -> Om p
-omPfx = omVar . ("$" <>)
-{-# INLINE omPfx #-}
+omPrim :: Name -> Om p
+omPrim = omVar . ("$" <>)
+{-# INLINE omPrim #-}
 
 omLit :: p -> Om p
 omLit = embed1 Lit
