@@ -16,14 +16,6 @@ instance (Eq p) => Eq (Value p m) where
     (==) (Data c ps) (Data d qs) = c == d && ps == qs
     (==) _ _ = False
 
-basicPrelude :: PrimEnv BasicPrim
-basicPrelude =
-    [ ("eq"  , primFun2 ((\a b -> a == b) :: Int -> Int -> Bool))
-    , ("add" , primFun2 ((\a b -> a + b) :: Int -> Int -> Int ))
-    , ("sub" , primFun2 ((\a b -> a - b) :: Int -> Int -> Int ))
-    , ("mul" , primFun2 ((\a b -> a * b) :: Int -> Int -> Int ))
-    ]
-
 hasUpperInitial :: Name -> Bool
 hasUpperInitial "" = False
 hasUpperInitial name = isUpper (Text.head name)
