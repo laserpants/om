@@ -1,8 +1,9 @@
-{-# LANGUAGE DeriveTraversable  #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE StrictData         #-}
-{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE DeriveTraversable     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE StrictData            #-}
+{-# LANGUAGE TemplateHaskell       #-}
 module Om.Lang where
 
 import Data.Eq.Deriving (deriveEq1)
@@ -12,8 +13,6 @@ import Data.Ord.Deriving (deriveOrd1)
 import Om.Util
 import Text.Show.Deriving (deriveShow1)
 
-type OMatrix a = [(Names, a)]
-
 data OmF p a
     = Var Name
     | Lit p
@@ -21,7 +20,7 @@ data OmF p a
     | Let Name a a
     | If a a a
     | Lam Name a
-    | Pat a (OMatrix a)
+    | Pat a [(Names, a)]
 
 type Om p = Fix (OmF p)
 
@@ -53,7 +52,7 @@ omLam :: Name -> Om p -> Om p
 omLam = embed2 Lam
 {-# INLINE omLam #-}
 
-omPat :: Om p -> OMatrix (Om p) -> Om p
+omPat :: Om p -> [(Names, Om p)] -> Om p
 omPat = embed2 Pat
 {-# INLINE omPat #-}
 
