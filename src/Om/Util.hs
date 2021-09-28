@@ -1,7 +1,9 @@
 module Om.Util where
 
-import Data.Text (Text)
 import Data.Functor.Foldable
+import Data.Map.Strict (Map)
+import Data.Text (Text)
+import qualified Data.Map.Strict as Map
 
 type Name = Text
 type Names = [Name]
@@ -38,3 +40,6 @@ embed4 t a b c d = embed (t a b c d)
 embed5 :: (Corecursive t) => (t1 -> t2 -> t3 -> t4 -> t5 -> Base t t) -> t1 -> t2 -> t3 -> t4 -> t5 -> t
 embed5 t a b c d e = embed (t a b c d e)
 {-# INLINE embed5 #-}
+
+insertMany :: (Ord k) => [(k, a)] -> Map k a -> Map k a
+insertMany = flip (foldr (uncurry Map.insert))

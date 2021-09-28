@@ -151,14 +151,14 @@ eval = cata $ \case
                 throwError NonTruthyCondition
 
     Pat expr clauses ->
-        undefined -- evalPat clauses expr
+        evalPat expr clauses 
 
 toBool :: (PrimType p Bool) => Value p m -> Maybe Bool
 toBool (Value v) = fromPrim v
 toBool _         = Nothing
 
 evalApp
-  :: (MonadError Error m, MonadReader (EvalEnv p m, s) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
   => m (Value p m)
   -> m (Value p m)
   -> m (Value p m)
@@ -177,7 +177,7 @@ evalApp fx arg = do
             pure (Data con (args <> [val]))
 
 evalPrim
-  :: (MonadError Error m, MonadReader (EvalEnv p m, s) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
   => Fun p
   -> [Value p m]
   -> m (Value p m)
@@ -209,3 +209,22 @@ evalVar var = do
             case val2 of
                 Just val -> val
                 Nothing  -> throwError (UnboundIdentifier var)
+
+evalPat
+  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
+  => m (Value p m) 
+  -> OMatrix (m (Value p m)) 
+  -> m (Value p m)
+evalPat val = \case
+
+    [] -> throwError RuntimeError
+    [(c, e)] | c == [wcard] -> e
+
+    ((p:ps, e):eqs) ->
+        val >>= \case
+
+            Data con args | p == con ->
+                (local . first) (insertMany (zip ps (pure <$> args))) e
+
+            _ ->
+                evalPat val eqs 

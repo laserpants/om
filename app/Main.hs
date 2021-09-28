@@ -4,10 +4,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Main where
 
+import Data.Char (isUpper)
 import Om.Eval.Strict
 import Om.Lang
 import Om.Util
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 
 data Prim = PInt Int | PBool Bool
     deriving (Show)
@@ -30,19 +32,21 @@ env =
     , ("mul" , primFun2 ((\a b -> a * b) :: Int -> Int -> Int ))
     ]
 
-builtin :: Name -> Eval Prim (Maybe (Result Prim))
-builtin var =
-    case var of
-        "Cons" -> pure (Just (Data "Cons" []))
-        "Nil"  -> pure (Just (Data "Nil" []))
-        _      -> pure Nothing
+hasUpperInitial :: Name -> Bool
+hasUpperInitial "" = False
+hasUpperInitial name = isUpper (Text.head name)
+
+varHook :: Name -> Eval Prim (Maybe (Result Prim))
+varHook var
+  | hasUpperInitial var = pure (Just (Data var []))
+  | otherwise = pure Nothing
 
 -- let
 --   fact =
---     (n =>
---       if $eq(n, 0)
+--     (n) =>
+--       if .eq(n, 0)
 --         then 1
---         else $mul(n, fact($sub(n, 1))))
+--         else .mul(n, fact(.sub(n, 1)))
 --   in
 --     fact(8)
 --
@@ -68,27 +72,68 @@ test1Expr =
         (omApp [omVar "fact", omLit (PInt 8)])
 
 test1 :: Either Error String
-test1 = evalExpr test1Expr env builtin <#> toString
+test1 = evalExpr test1Expr env varHook <#> toString
 
--- Cons [1, Cons [2, Nil []]]
+-- Cons(1, Cons(2, Nil))
+--
 test2Expr :: Om Prim
 test2Expr =
-    omApp
-        [ omVar "Cons"
-        , omLit (PInt 1)
-        , omApp
-            [ omVar "Cons"
-            , omLit (PInt 2)
-            , omApp
-                [ omVar "Cons"
-                , omLit (PInt 3)
-                , omVar "Nil"
+    omData "Cons"
+        [ omLit (PInt 1)
+        , omData "Cons"
+            [ omLit (PInt 2)
+            , omData "Cons"
+                [ omLit (PInt 3)
+                , omData "Nil" []
                 ]
             ]
         ]
 
 test2 :: Either Error String
-test2 = evalExpr test2Expr env builtin <#> toString
+test2 = evalExpr test2Expr env varHook <#> toString
+
+-- match Cons(1, Cons(2, Nil)) with
+--   | Cons(n, _) = n
+--
+test3Expr :: Om Prim
+test3Expr =
+    omPat test2Expr
+        [ (["Cons", "n", wcard], omVar "n") ]
+
+test3 :: Either Error String
+test3 = evalExpr test3Expr env varHook <#> toString
+
+-- match Nil with
+--   | Cons(n, _) = n
+--   | Nil = 100
+--
+test4Expr :: Om Prim
+test4Expr =
+    omPat (omVar "Nil")
+        [ (["Cons", "n", wcard], omVar "n")
+        , (["Nil"], omLit (PInt 100))
+        ]
+
+test4 :: Either Error String
+test4 = evalExpr test4Expr env varHook <#> toString
+
+-- match Cons(1, Cons(2, Nil)) with
+--   | Cons(_, xs) =
+--       match xs with
+--         | Cons(n, _) = n
+--   | Nil = 100
+--
+test5Expr :: Om Prim
+test5Expr =
+    omPat test2Expr
+        [ (["Cons", wcard, "xs"],
+            (omPat (omVar "xs")
+                [ (["Cons", "n", wcard], omVar "n") ]))
+        , (["Nil"], omLit (PInt 100))
+        ]
+
+test5 :: Either Error String
+test5 = evalExpr test5Expr env varHook <#> toString
 
 main :: IO ()
 main = print "OK"

@@ -57,6 +57,13 @@ omPat :: Om p -> OMatrix (Om p) -> Om p
 omPat = embed2 Pat
 {-# INLINE omPat #-}
 
+wcard :: Name
+wcard = "$_"
+{-# INLINE wcard #-}
+
+omData :: Name -> [Om p] -> Om p
+omData con args = omApp (omVar con:args)
+
 deriving instance (Show p, Show a) => Show (OmF p a)
 deriving instance (Eq   p, Eq   a) => Eq   (OmF p a)
 deriving instance (Ord  p, Ord  a) => Ord  (OmF p a)
