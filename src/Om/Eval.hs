@@ -23,11 +23,12 @@ data Value p m
 toString :: (Show p) => Value p m -> String
 toString = \case
     Value p      -> show p
-    Data con vs  -> unpack con <> " " <> flatten (toString <$> vs)
+    Data con []  -> unpack con
+    Data con vs  -> unpack con <> flatten (toString <$> vs)
     Closure{}    -> "((function))"
     _            -> "((internal))"
   where
-    flatten strs = "[" <> foldr (<>) "" (intersperse ", " strs) <> "]"
+    flatten strs = "(" <> foldr (<>) "" (intersperse ", " strs) <> ")"
 
 type EvalEnv p m = Map Name (m (Value p m))
 
