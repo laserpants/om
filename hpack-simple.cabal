@@ -30,9 +30,11 @@ library
       Om.Lang
       Om.Plug
       Om.Plug.Constructor
+      Om.Plug.Nats
       Om.Plug.Pattern
       Om.Prim
       Om.Prim.Basic
+      Om.Prim.BasicNats
       Om.Util
   other-modules:
       Paths_hpack_simple
