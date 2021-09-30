@@ -15,6 +15,7 @@ import Om.Plug.Pattern
 import Om.Prim
 import Om.Prim.Basic
 import Om.Util
+import qualified Om.Prim.Basic as Basic
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 
@@ -37,11 +38,11 @@ main = hspec $ do
 example1 :: Om BasicPrim
 example1 =
     omData "Cons"
-        [ omLit (PInt 1)
+        [ omLit (Basic.Int 1)
         , omData "Cons"
-            [ omLit (PInt 2)
+            [ omLit (Basic.Int 2)
             , omData "Cons"
-                [ omLit (PInt 3)
+                [ omLit (Basic.Int 3)
                 , omData "Nil" []
                 ]
             ]
@@ -54,9 +55,9 @@ example2 :: Om BasicPrim
 example2 =
     omData "#"
         [ omData "{one}"
-            [ omLit (PInt 1)
+            [ omLit (Basic.Int 1)
             , omData "{two}"
-                [ omLit (PInt 2)
+                [ omLit (Basic.Int 2)
                 , omData "{}" []
                 ]
             ]
@@ -69,9 +70,9 @@ example3 :: Om BasicPrim
 example3 =
     omData "#"
         [ omData "{two}"
-            [ omLit (PInt 2)
+            [ omLit (Basic.Int 2)
             , omData "{one}"
-                [ omLit (PInt 1)
+                [ omLit (Basic.Int 1)
                 , omData "{}" []
                 ]
             ]
@@ -84,7 +85,7 @@ example4 :: Om BasicPrim
 example4 =
     omData "#"
         [ omData "{one}"
-            [ omLit (PInt 1)
+            [ omLit (Basic.Int 1)
             , omData "{}" [] 
             ]
         ]
@@ -110,8 +111,8 @@ evalTests =
             (omLet "fact"
                 (omLam "n"
                     (omIf
-                        (omApp [omPrim "eq", omVar "n", omLit (PInt 0)])
-                        (omLit (PInt 1))
+                        (omApp [omPrim "eq", omVar "n", omLit (Basic.Int 0)])
+                        (omLit (Basic.Int 1))
                         (omApp
                             [ omPrim "mul"
                             , omVar "n"
@@ -120,18 +121,18 @@ evalTests =
                                 , omApp
                                     [ omPrim "sub"
                                     , omVar "n"
-                                    , omLit (PInt 1)
+                                    , omLit (Basic.Int 1)
                                     ]
                                 ]
                             ])))
-                    (omApp [omVar "fact", omLit (PInt 8)]))
-                (Right (Value (PInt 40320)))
+                    (omApp [omVar "fact", omLit (Basic.Int 8)]))
+                (Right (Value (Basic.Int 40320)))
 
 ------------------------------------------------------------------------------------------------------
 
         testEval "Cons(1, Cons(2, Nil))"
             example1
-            (Right (Data "Cons" [Value (PInt 1), Data "Cons" [Value (PInt 2), Data "Cons" [Value (PInt 3), Data "Nil" []]]]))
+            (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
 ------------------------------------------------------------------------------------------------------
 
@@ -141,7 +142,7 @@ evalTests =
             --   | Cons(n, _) = n
             --
             (omPat example1 [ (["Cons", "n", wcard], omVar "n") ])
-            (Right (Value (PInt 1)))
+            (Right (Value (Basic.Int 1)))
 
 ------------------------------------------------------------------------------------------------------
 
@@ -151,8 +152,8 @@ evalTests =
             --   | Cons(n, _) = n
             --   | Nil = 100
             --
-            (omPat (omVar "Nil") [ (["Cons", "n", wcard], omVar "n") , (["Nil"], omLit (PInt 100)) ])
-            (Right (Value (PInt 100)))
+            (omPat (omVar "Nil") [ (["Cons", "n", wcard], omVar "n") , (["Nil"], omLit (Basic.Int 100)) ])
+            (Right (Value (Basic.Int 100)))
 
 ------------------------------------------------------------------------------------------------------
 
@@ -168,9 +169,9 @@ evalTests =
                 [ (["Cons", wcard, "xs"],
                     (omPat (omVar "xs")
                         [ (["Cons", "n", wcard], omVar "n") ]))
-                , (["Nil"], omLit (PInt 100))
+                , (["Nil"], omLit (Basic.Int 100))
                 ])
-            (Right (Value (PInt 2)))
+            (Right (Value (Basic.Int 2)))
 
 ------------------------------------------------------------------------------------------------------
 
@@ -186,7 +187,7 @@ evalRecordsTests = do
             -- { one = 1, two = 2 }.two
             --
             (omApp [omVar ".two", example2])
-            (Right (Value (PInt 2)))
+            (Right (Value (Basic.Int 2)))
 
         testEval "{ one = 1, two = 2 }.one [1]"
             --
@@ -195,7 +196,7 @@ evalRecordsTests = do
             -- { one = 1, two = 2 }.one
             --
             (omApp [omVar ".one", example2])
-            (Right (Value (PInt 1)))
+            (Right (Value (Basic.Int 1)))
 
     describe "Eval records (pattern matching)" $ do
 
@@ -219,7 +220,7 @@ evalRecordsTests = do
                             (omVar "row")
                             [(["{one}", "o", wcard], omVar "o")]
                     )]))
-            (Right (Value (PInt 1)))
+            (Right (Value (Basic.Int 1)))
 
         testEval "Example #2"
             --
@@ -241,7 +242,7 @@ evalRecordsTests = do
                             (omVar "row")
                             [(["{one}", "o", wcard], omVar "o")]
                     )]))
-            (Right (Value (PInt 1)))
+            (Right (Value (Basic.Int 1)))
 
         testEval "Example #3"
             --
@@ -279,7 +280,7 @@ evalRecordsTests = do
                                 )
                             )])
                     )]))
-            (Right (Value (PInt 2)))
+            (Right (Value (Basic.Int 2)))
 
         testEval "Example #4"
             --
@@ -307,7 +308,7 @@ evalRecordsTests = do
                                 )
                             )])
                     )]))
-            (Right (Value (PInt 2)))
+            (Right (Value (Basic.Int 2)))
 
         testEval "Example #5"
             --
@@ -338,7 +339,7 @@ evalRecordsTests = do
                             (omVar "row")
                             [(["{one}", "o", "r"], omVar "r")])
                     )]))
-            (Right (Data "{two}" [Value (PInt 2), Data "{}" []]))
+            (Right (Data "{two}" [Value (Basic.Int 2), Data "{}" []]))
 
         testEval "Example #6"
             --
