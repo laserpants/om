@@ -533,3 +533,13 @@ parserTests = do
         testParse exprParser 
             "$fun"
             (omVar "$fun" :: Om BasicPrim)
+
+        testParse exprParser 
+            "if f(x, y) then z else z => z"
+            (omIf (omApp [omVar "f", omVar "x", omVar "y"]) (omVar "z") (omLam "z" (omVar "z")) :: Om BasicPrim)
+
+        -- TODO
+        -- testParse exprParser 
+            -- (x => x)(y)"
+
+
