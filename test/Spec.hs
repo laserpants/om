@@ -5,13 +5,7 @@ import Test.Hspec
 
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Char (isUpper)
-import Data.Foldable
-import Data.Map.Strict (Map)
-import Data.Maybe (fromJust)
 import Data.Text (Text, unpack)
-import Data.Tuple.Extra (first, fst3, snd3, thd3, first3, second3, third3)
-import Debug.Trace
 import Om.Eval
 import Om.Eval.Strict
 import Om.Lang
