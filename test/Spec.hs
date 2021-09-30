@@ -12,7 +12,7 @@ import Om.Lang
 import Om.Plug
 import Om.Plug.Constructor
 import Om.Plug.Nats
-import Om.Plug.Pattern
+import Om.Plug.Records
 import Om.Prim
 import Om.Prim.Basic
 import Om.Prim.BasicNats 

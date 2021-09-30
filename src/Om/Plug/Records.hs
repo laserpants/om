@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Plug.Pattern 
+module Om.Plug.Records
   ( recordPlugin
   ) where
 

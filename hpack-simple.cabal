@@ -31,7 +31,7 @@ library
       Om.Plug
       Om.Plug.Constructor
       Om.Plug.Nats
-      Om.Plug.Pattern
+      Om.Plug.Records
       Om.Prim
       Om.Prim.Basic
       Om.Prim.BasicNats
