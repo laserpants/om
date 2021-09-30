@@ -27,13 +27,13 @@ testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> Spec
 testEvalBasic dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicPrelude (constructorPlugin <> recordPlugin)
+    result = evalExpr om basicPrelude (constructorPlugin <> recordsPlugin)
 
 testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (Result BasicNatsPrim) -> SpecWith ()
 testEvalBasicNats dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicNatsPrelude (natsPlugin <> constructorPlugin <> recordPlugin)
+    result = evalExpr om basicNatsPrelude (natsPlugin <> constructorPlugin <> recordsPlugin)
 
 
 ------------------------------------------------------------------------------------------------------

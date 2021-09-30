@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Plug.Records
-  ( recordPlugin
+  ( recordsPlugin
   ) where
 
 import Control.Monad.Except
@@ -17,11 +17,11 @@ import Om.Util
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 
-recordPlugin :: Plugin p (Eval p)
-recordPlugin = plugin (Just recordLookupHook) (Just recordPatternHook)
+recordsPlugin :: Plugin p (Eval p)
+recordsPlugin = plugin (Just recordsLookupHook) (Just recordsPatternHook)
 
-recordLookupHook :: LookupHook p (Eval p)
-recordLookupHook var
+recordsLookupHook :: LookupHook p (Eval p)
+recordsLookupHook var
   | '.' == Text.head var = do
       let closr body = pure (Closure "?0" body mempty)
       Just <$$> closr $ do
@@ -43,8 +43,8 @@ getField name [Data f (v:fs)]
   | f == ("{" <> name <> "}") = pure v
   | otherwise                 = getField name fs
 
-recordPatternHook :: PatternHook p (Eval p)
-recordPatternHook (([p, q, r], e):_) val
+recordsPatternHook :: PatternHook p (Eval p)
+recordsPatternHook (([p, q, r], e):_) val
   | isRowCon p = do
         fun <- do
             row <- toMap val mempty
@@ -53,7 +53,7 @@ recordPatternHook (([p, q, r], e):_) val
                 Just (v:_) -> pure (insertMany [(q, v), (r, fromMap (Map.delete p row))])
         Just <$> local (first3 fun) e
 
-recordPatternHook _ _ = pure Nothing
+recordsPatternHook _ _ = pure Nothing
 
 isRowCon :: Name -> Bool
 isRowCon ""  = False
