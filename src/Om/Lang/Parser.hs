@@ -76,13 +76,15 @@ wordParser :: Parser Text
 wordParser = word (pack <$> many validChar)
 
 exprParser :: Parser (Om p)
-exprParser = makeExprParser (try (parens exprParser) <|> parser) []
+exprParser = (`makeExprParser` []) $
+    try parseApp
+        <|> parens exprParser
+        <|> parser
   where
     parser = parseIf
         <|> parseLet
         <|> parsePat
         <|> try parseLam
-        <|> try parseApp
         <|> parseVar
         <|> parsePrim
 
@@ -102,9 +104,13 @@ parseLet = do
 
 parseApp :: Parser (Om p)
 parseApp = do
-    fun <- try (word (withInitial (char '$'))) <|> wordParser
+    fun <- funParser
     args <- components exprParser
-    pure (omApp (omVar fun:args))
+    pure (omApp (fun:args))
+  where
+    funParser = try (parens exprParser)
+        <|> try (omVar <$> (word (withInitial (char '$'))))
+        <|> omVar <$> wordParser
 
 parseLam :: Parser (Om p)
 parseLam = do
@@ -131,10 +137,10 @@ parseClause = do
     expr <- exprParser
     pure (names, expr)
   where
-    args = parens (components (wildcard <|> wordParser))
+    args = components (wildcard <|> wordParser)
 
 wildcard :: Parser Name
-wildcard = "_" $> wcard
+wildcard = token "_" $> wcard
 
 parseVar :: Parser (Om p)
 parseVar = omVar <$> nameParser

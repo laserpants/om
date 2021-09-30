@@ -538,8 +538,54 @@ parserTests = do
             "if f(x, y) then z else z => z"
             (omIf (omApp [omVar "f", omVar "x", omVar "y"]) (omVar "z") (omLam "z" (omVar "z")) :: Om BasicPrim)
 
-        -- TODO
-        -- testParse exprParser 
-            -- (x => x)(y)"
+        testParse exprParser 
+            "(x => x)(y)"
+            (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
+        testParse exprParser 
+            "((x => x)(y))"
+            (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
+        testParse exprParser 
+            "(((x => x))(y))"
+            (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
+
+        testParse exprParser 
+            "($fun(x))"
+            (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
+
+        testParse exprParser 
+            "(($fun(x)))"
+            (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
+
+        testParse exprParser 
+            "x"
+            (omVar "x" :: Om BasicPrim)
+
+        testParse exprParser 
+            "(x)"
+            (omVar "x" :: Om BasicPrim)
+
+        testParse exprParser 
+            "((x))"
+            (omVar "x" :: Om BasicPrim)
+
+        testParse exprParser 
+            "match xs with | _ = x"
+            (omPat (omVar "xs") [(["$_"], omVar "x")] :: Om BasicPrim)
+
+        testParse exprParser 
+            "match xs with | Cons(x, xs) = x | Nil = y"
+            (omPat (omVar "xs") [(["Cons", "x", "xs"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+
+        testParse exprParser 
+            "match xs with | Cons(x, _) = x | Nil = y"
+            (omPat (omVar "xs") [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+
+        testParse exprParser 
+            "let x = y => y in x(y)"
+            (omLet "x" (omLam "y" (omVar "y")) (omApp [omVar "x", omVar "y"]) :: Om BasicPrim)
+
+        testParse exprParser 
+            "let x = (y => y) in x(y)"
+            (omLet "x" (omLam "y" (omVar "y")) (omApp [omVar "x", omVar "y"]) :: Om BasicPrim)
