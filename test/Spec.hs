@@ -32,7 +32,7 @@ testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (Result BasicNatsP
 testEvalBasicNats dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicNatsPrelude (constructorPlugin <> recordPlugin <> natsPlugin)
+    result = evalExpr om basicNatsPrelude (natsPlugin <> constructorPlugin <> recordPlugin)
 
 
 ------------------------------------------------------------------------------------------------------
@@ -432,8 +432,70 @@ evalNatsTests = do
                         ])))
             (Right (Value (BasicNats.Nat 5)))
 
-    ----------------------------------------
-    -- TODO: Test pattern matching on nats
-    ----------------------------------------
+    describe "Eval nats (pattern matching)" $ do
 
+        testEvalBasicNats "match succ(succ(succ(zero))) with | succ(n) = n [2]"
+            (omPat 
+                (omApp 
+                    [ omVar "succ"
+                    , omApp
+                        [ omVar "succ"
+                        , omApp
+                            [ omVar "succ"
+                            , omVar "zero"
+                            ]
+                        ]
+                    ])
+                [(["succ", "n"], omVar "n")])
+            (Right (Value (BasicNats.Nat 2)))
+
+        testEvalBasicNats "match succ(succ(succ(zero))) with | zero = 1 | succ(n) = n [2]"
+            (omPat 
+                (omApp 
+                    [ omVar "succ"
+                    , omApp
+                        [ omVar "succ"
+                        , omApp
+                            [ omVar "succ"
+                            , omVar "zero"
+                            ]
+                        ]
+                    ])
+                [ (["zero"], omLit (BasicNats.Nat 1))
+                , (["succ", "n"], omVar "n")
+                ])
+            (Right (Value (BasicNats.Nat 2)))
+
+        testEvalBasicNats "match zero with | zero = 1 | succ(n) = n [1]"
+            (omPat 
+                (omVar "zero")
+                [ (["zero"], omLit (BasicNats.Nat 1))
+                , (["succ", "n"], omVar "n")
+                ])
+            (Right (Value (BasicNats.Nat 1)))
+
+        testEvalBasicNats "match zero with | succ(n) = n | zero = 1 [1]"
+            (omPat 
+                (omVar "zero")
+                [ (["succ", "n"], omVar "n")
+                , (["zero"], omLit (BasicNats.Nat 1))
+                ])
+            (Right (Value (BasicNats.Nat 1)))
+
+        testEvalBasicNats "match succ(succ(succ(zero))) with | succ(n) = n | zero = 1 [2]"
+            (omPat 
+                (omApp 
+                    [ omVar "succ"
+                    , omApp
+                        [ omVar "succ"
+                        , omApp
+                            [ omVar "succ"
+                            , omVar "zero"
+                            ]
+                        ]
+                    ])
+                [ (["succ", "n"], omVar "n")
+                , (["zero"], omLit (BasicNats.Nat 1))
+                ])
+            (Right (Value (BasicNats.Nat 2)))
 
