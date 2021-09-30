@@ -114,9 +114,9 @@ evalTests =
             --  let
             --    fact =
             --      n =>
-            --        if @eq(n, 0)
+            --        if $eq(n, 0)
             --          then 1
-            --          else @mul(n, fact(@sub(n, 1)))
+            --          else $mul(n, fact($sub(n, 1)))
             --    in
             --      fact(8)
             --
@@ -406,7 +406,7 @@ evalNatsTests = do
             (omVar "zero")
             (Right (Value (BasicNats.Nat 0)))
 
-        testEvalBasicNats "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in @add(m, n) [Nat 5]"
+        testEvalBasicNats "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n) [Nat 5]"
             (omLet "m"
                 (omApp
                     [ omVar "succ"
