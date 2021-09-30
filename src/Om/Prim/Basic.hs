@@ -26,4 +26,5 @@ basicPrelude =
     , ("add" , primFun2 ((\a b -> a + b) :: Int -> Int -> Int ))
     , ("sub" , primFun2 ((\a b -> a - b) :: Int -> Int -> Int ))
     , ("mul" , primFun2 ((\a b -> a * b) :: Int -> Int -> Int ))
+    , ("div" , primFun2 ((\a b -> a `div` b) :: Int -> Int -> Int ))
     ]
