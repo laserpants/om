@@ -520,16 +520,16 @@ parserTests = do
 
         testParse exprParser 
             "Cons(x, xs)"
-            (undefined :: Om BasicPrim)
+            (omApp [omVar "Cons", omVar "x", omVar "xs"] :: Om BasicPrim)
 
         testParse exprParser 
             "fun(x)"
-            (undefined :: Om BasicPrim)
+            (omApp [omVar "fun", omVar "x"] :: Om BasicPrim)
 
         testParse exprParser 
             "$fun(x)"
-            (undefined :: Om BasicPrim)
+            (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
         testParse exprParser 
             "$fun"
-            (undefined :: Om BasicPrim)
+            (omVar "$fun" :: Om BasicPrim)
