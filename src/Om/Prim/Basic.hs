@@ -7,18 +7,18 @@ import Om.Eval
 import Om.Prim
 import Om.Util
 
-data BasicPrim = PInt Int | PBool Bool
+data BasicPrim = Int Int | Bool Bool
     deriving (Show, Eq)
 
 instance PrimType BasicPrim Int where
-    toPrim n           = PInt n
-    fromPrim (PInt n)  = Just n
-    fromPrim _         = Nothing
+    toPrim n          = Int n
+    fromPrim (Int n)  = Just n
+    fromPrim _        = Nothing
 
 instance PrimType BasicPrim Bool where
-    toPrim b           = PBool b
-    fromPrim (PBool b) = Just b
-    fromPrim _         = Nothing
+    toPrim b          = Bool b
+    fromPrim (Bool b) = Just b
+    fromPrim _        = Nothing
 
 basicPrelude :: (Monad m) => [(Name, m (Value BasicPrim m))]
 basicPrelude =

@@ -6,5 +6,7 @@ import Om.Lang
 import Om.Prim.Basic
 import Om.Util
 
+import Om.Prim.BasicNats
+
 main :: IO ()
 main = pure ()
