@@ -9,6 +9,7 @@ import Data.Text (Text, unpack)
 import Om.Eval
 import Om.Eval.Strict
 import Om.Lang
+import Om.Lang.Parser
 import Om.Plug
 import Om.Plug.Constructor
 import Om.Plug.Nats
@@ -17,11 +18,21 @@ import Om.Prim
 import Om.Prim.Basic
 import Om.Prim.BasicNats 
 import Om.Util
-import qualified Om.Prim.Basic as Basic
+import Text.Megaparsec
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Om.Prim.Basic as Basic
+import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.BasicNats as BasicNats
+
+main :: IO ()
+main = hspec $ do
+    evalTests
+    evalRecordsTests
+    evalNatsTests
+    parserTests
+
+------------------------------------------------------------------------------------------------------
 
 testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> SpecWith ()
 testEvalBasic dscr om expect =
@@ -34,15 +45,6 @@ testEvalBasicNats dscr om expect =
     it (unpack dscr) (expect == result)
   where
     result = evalExpr om basicNatsPrelude (natsPlugin <> constructorPlugin <> recordsPlugin)
-
-
-------------------------------------------------------------------------------------------------------
-
-main :: IO ()
-main = hspec $ do
-    evalTests
-    evalRecordsTests
-    evalNatsTests
 
 ------------------------------------------------------------------------------------------------------
 
@@ -500,3 +502,34 @@ evalNatsTests = do
                 ])
             (Right (Value (BasicNats.Nat 2)))
 
+------------------------------------------------------------------------------------------------------
+
+testParse :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
+testParse parser input expect =
+    it (unpack input) (runParser parser "" input == Right expect)
+
+------------------------------------------------------------------------------------------------------
+
+parserTests :: SpecWith ()
+parserTests = do
+
+    describe "Parser" $ do
+        testParse exprParser 
+            "let x = y in z"
+            (omLet "x" (omVar "y") (omVar "z") :: Om BasicPrim)
+
+        testParse exprParser 
+            "Cons(x, xs)"
+            (undefined :: Om BasicPrim)
+
+        testParse exprParser 
+            "fun(x)"
+            (undefined :: Om BasicPrim)
+
+        testParse exprParser 
+            "$fun(x)"
+            (undefined :: Om BasicPrim)
+
+        testParse exprParser 
+            "$fun"
+            (undefined :: Om BasicPrim)
