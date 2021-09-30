@@ -11,19 +11,29 @@ import Om.Eval.Strict
 import Om.Lang
 import Om.Plug
 import Om.Plug.Constructor
+import Om.Plug.Nats
 import Om.Plug.Pattern
 import Om.Prim
 import Om.Prim.Basic
+import Om.Prim.BasicNats 
 import Om.Util
-import qualified Om.Prim.Basic as Basic
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
+import qualified Om.Prim.Basic as Basic
+import qualified Om.Prim.BasicNats as BasicNats
 
-testEval :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> SpecWith ()
-testEval dscr om expect =
+testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> SpecWith ()
+testEvalBasic dscr om expect =
     it (unpack dscr) (expect == result)
   where
     result = evalExpr om basicPrelude (constructorPlugin <> recordPlugin)
+
+testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (Result BasicNatsPrim) -> SpecWith ()
+testEvalBasicNats dscr om expect =
+    it (unpack dscr) (expect == result)
+  where
+    result = evalExpr om basicNatsPrelude (constructorPlugin <> recordPlugin <> natsPlugin)
+
 
 ------------------------------------------------------------------------------------------------------
 
@@ -31,6 +41,7 @@ main :: IO ()
 main = hspec $ do
     evalTests
     evalRecordsTests
+    evalNatsTests
 
 ------------------------------------------------------------------------------------------------------
 
@@ -97,7 +108,7 @@ evalTests =
 
     describe "Eval" $ do
 
-        testEval "8 factorial [40320]"
+        testEvalBasic "8 factorial [40320]"
             --
             --  let
             --    fact =
@@ -130,13 +141,13 @@ evalTests =
 
 ------------------------------------------------------------------------------------------------------
 
-        testEval "Cons(1, Cons(2, Nil))"
+        testEvalBasic "Cons(1, Cons(2, Nil))"
             example1
             (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
 ------------------------------------------------------------------------------------------------------
 
-        testEval "match Cons(1, Cons(2, Nil)) with | Cons(n, _) = n [1]"
+        testEvalBasic "match Cons(1, Cons(2, Nil)) with | Cons(n, _) = n [1]"
             --
             -- match Cons(1, Cons(2, Nil)) with
             --   | Cons(n, _) = n
@@ -146,7 +157,7 @@ evalTests =
 
 ------------------------------------------------------------------------------------------------------
 
-        testEval "match Nil with | Cons(n, _) = n | Nil = 100 [100]"
+        testEvalBasic "match Nil with | Cons(n, _) = n | Nil = 100 [100]"
             --
             -- match Nil with
             --   | Cons(n, _) = n
@@ -157,7 +168,7 @@ evalTests =
 
 ------------------------------------------------------------------------------------------------------
 
-        testEval "match Cons(1, Cons(2, Nil)) with | Cons(_, xs) = match xs with | Cons(n, _) = n | Nil = 100 [2]"
+        testEvalBasic "match Cons(1, Cons(2, Nil)) with | Cons(_, xs) = match xs with | Cons(n, _) = n | Nil = 100 [2]"
             --
             -- match Cons(1, Cons(2, Nil)) with
             --   | Cons(_, xs) =
@@ -180,7 +191,7 @@ evalRecordsTests = do
 
     describe "Eval records" $ do
 
-        testEval "{ one = 1, two = 2 }.two [2]"
+        testEvalBasic "{ one = 1, two = 2 }.two [2]"
             --
             -- .two({ one = 1, two = 2 })
             --
@@ -189,7 +200,7 @@ evalRecordsTests = do
             (omApp [omVar ".two", example2])
             (Right (Value (Basic.Int 2)))
 
-        testEval "{ one = 1, two = 2 }.one [1]"
+        testEvalBasic "{ one = 1, two = 2 }.one [1]"
             --
             -- .one(two, { one = 1, two = 2 })
             --
@@ -200,7 +211,7 @@ evalRecordsTests = do
 
     describe "Eval records (pattern matching)" $ do
 
-        testEval "Example #1"
+        testEvalBasic "Example #1"
             --
             -- let 
             --   r =
@@ -222,7 +233,7 @@ evalRecordsTests = do
                     )]))
             (Right (Value (Basic.Int 1)))
 
-        testEval "Example #2"
+        testEvalBasic "Example #2"
             --
             -- let 
             --   r =
@@ -244,7 +255,7 @@ evalRecordsTests = do
                     )]))
             (Right (Value (Basic.Int 1)))
 
-        testEval "Example #3"
+        testEvalBasic "Example #3"
             --
             -- let 
             --   r =
@@ -282,7 +293,7 @@ evalRecordsTests = do
                     )]))
             (Right (Value (Basic.Int 2)))
 
-        testEval "Example #4"
+        testEvalBasic "Example #4"
             --
             -- let 
             --   r =
@@ -310,7 +321,7 @@ evalRecordsTests = do
                     )]))
             (Right (Value (Basic.Int 2)))
 
-        testEval "Example #5"
+        testEvalBasic "Example #5"
             --
             -- let 
             --   r =
@@ -341,7 +352,7 @@ evalRecordsTests = do
                     )]))
             (Right (Data "{two}" [Value (Basic.Int 2), Data "{}" []]))
 
-        testEval "Example #6"
+        testEvalBasic "Example #6"
             --
             -- let 
             --   r =
@@ -371,3 +382,58 @@ evalRecordsTests = do
                             [(["{one}", "o", "r"], omVar "r")])
                     )]))
             (Right (Data "{}" []))
+
+
+------------------------------------------------------------------------------------------------------
+
+evalNatsTests :: SpecWith ()
+evalNatsTests = do
+
+    describe "Eval nats" $ do
+
+        testEvalBasicNats "succ(succ(zero))"
+            (omApp
+                [ omVar "succ"
+                , omApp
+                    [ omVar "succ"
+                    , omVar "zero"
+                    ]
+                ])
+            (Right (Value (BasicNats.Nat 2)))
+
+        testEvalBasicNats "zero"
+            (omVar "zero")
+            (Right (Value (BasicNats.Nat 0)))
+
+        testEvalBasicNats "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in @add(m, n) [Nat 5]"
+            (omLet "m"
+                (omApp
+                    [ omVar "succ"
+                    , omApp
+                        [ omVar "succ"
+                        , omVar "zero"
+                        ]
+                    ])
+                (omLet "n"
+                    (omApp 
+                        [ omVar "succ"
+                        , omApp
+                            [ omVar "succ"
+                            , omApp
+                                [ omVar "succ"
+                                , omVar "zero"
+                                ]
+                            ]
+                        ])
+                    (omApp 
+                        [ omPrim "add"
+                        , omVar "m"
+                        , omVar "n"
+                        ])))
+            (Right (Value (BasicNats.Nat 5)))
+
+    ----------------------------------------
+    -- TODO: Test pattern matching on nats
+    ----------------------------------------
+
+
