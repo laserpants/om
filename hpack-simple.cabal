@@ -28,6 +28,9 @@ library
       Om.Eval
       Om.Eval.Strict
       Om.Lang
+      Om.Plug
+      Om.Plug.Constructor
+      Om.Plug.Pattern
       Om.Prim
       Om.Prim.Basic
       Om.Util

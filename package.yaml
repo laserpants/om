@@ -25,6 +25,7 @@ dependencies:
 - data-fix
 - deriving-compat
 - extra
+- extra
 - mtl
 - recursion-schemes
 - text

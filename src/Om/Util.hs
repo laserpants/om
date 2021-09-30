@@ -2,8 +2,10 @@ module Om.Util where
 
 import Data.Functor.Foldable
 import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 
 type Name = Text
 type Names = [Name]
@@ -43,3 +45,6 @@ embed5 t a b c d e = embed (t a b c d e)
 
 insertMany :: (Ord k) => [(k, a)] -> Map k a -> Map k a
 insertMany = flip (foldr (uncurry Map.insert))
+
+stripPrefix :: Text -> Text -> Text
+stripPrefix head str = fromMaybe str (Text.stripPrefix head str)

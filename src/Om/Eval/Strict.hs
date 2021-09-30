@@ -6,9 +6,10 @@ module Om.Eval.Strict where
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Functor.Foldable
-import Data.Tuple.Extra (first)
+import Data.Tuple.Extra (first, fst3, snd3, thd3, first3, second3, third3)
 import Om.Eval
 import Om.Lang
+import Om.Plug
 import Om.Prim
 import Om.Util
 import qualified Data.Map.Strict as Map
@@ -17,13 +18,13 @@ type Result p = Value p (Eval p)
 
 type PrimEnv p = [(Name, Eval p (Result p))]
 
-evalExpr :: (PrimType p Bool) => Om p -> PrimEnv p -> Hooks p (Eval p) -> Either Error (Result p)
-evalExpr om funs lup = runEval (eval om) (foldr (uncurry Map.insert) mempty env, lup)
+evalExpr :: (PrimType p Bool) => Om p -> PrimEnv p -> Plugin p (Eval p) -> Either Error (Result p)
+evalExpr om prim plug = runEval (eval om) (foldr (uncurry Map.insert) mempty env, lookupHooks plug, patternHooks plug)
   where
-    env = funs <#> first ("$" <>)
+    env = prim <#> first ("$" <>)
 
 eval
-  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
+  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
   => Om p
   -> m (Value p m)
 eval = cata $ \case
@@ -31,11 +32,11 @@ eval = cata $ \case
     Var var    -> evalVar var
     App exs    -> foldl1 evalApp exs
     Lit lit    -> pure (Value lit)
-    Lam var e1 -> asks (Closure var e1 . fst)
+    Lam var e1 -> asks (Closure var e1 . fst3)
 
     Let var e1 e2 -> do
         e <- e1
-        (local . first) (Map.insert var (pure e)) e2
+        (local . first3) (Map.insert var (pure e)) e2
 
     If e1 e2 e3 -> do
         e <- e1
@@ -54,7 +55,7 @@ toBool (Value v) = fromPrim v
 toBool _         = Nothing
 
 evalApp
-  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
   => m (Value p m)
   -> m (Value p m)
   -> m (Value p m)
@@ -64,7 +65,7 @@ evalApp fx arg = do
     case fun of
 
         Closure var body closure ->
-            (local . first) (Map.insert var (pure val) . (closure <>)) body
+            (local . first3) (Map.insert var (pure val) . (closure <>)) body
 
         PrimFun fun args ->
             evalPrim fun (val:args)
@@ -73,14 +74,14 @@ evalApp fx arg = do
             pure (Data con (args <> [val]))
 
 evalPrim
-  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
   => Fun p
   -> [Value p m]
   -> m (Value p m)
 evalPrim fun args
     | arity fun == length args = do
-        xs <- traverse literal (reverse args)
-        case applyFun fun xs of
+        vs <- traverse literal (reverse args)
+        case applyFun fun vs of
             Nothing   -> throwError TypeMismatch
             Just prim -> pure (Value prim)
 
@@ -92,22 +93,24 @@ evalPrim fun args
     literal _           = throwError RuntimeError
 
 evalVar
-  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
   => Name
   -> m (Value p m)
 evalVar var = do
-    hook <- ask <#> snd
-    val1 <- hook var
-    case val1 of
-        Just val -> pure val
+    -- Run hooks
+    hook <- ask <#> snd3
+    res <- hook var
+    case res of
+        Just v1 -> pure v1
+        -- If hooks return Nothing, do regular lookup
         Nothing -> do
-            val2 <- asks (Map.lookup var . fst)
-            case val2 of
+            val <- asks (Map.lookup var . fst3)
+            case val of
                 Just val -> val
-                Nothing  -> throwError (UnboundIdentifier var)
+                Nothing  -> throwError (UnboundIdentifier (stripPrefix "$" var))
 
 evalPat
-  :: (MonadError Error m, MonadReader (EvalEnv p m, Hooks p m) m)
+  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
   => m (Value p m)
   -> [(Names, m (Value p m))]
   -> m (Value p m)
@@ -116,11 +119,17 @@ evalPat val = \case
     [] -> throwError RuntimeError
     [(c, e)] | c == [wcard] -> e
 
-    ((p:ps, e):eqs) ->
-        val >>= \case
+    pats@((p:ps, e):eqs) -> do
+        -- Run hooks
+        hook <- ask <#> thd3
+        res <- hook pats val
+        case res of
+            Just v1 -> pure v1
+            -- If hooks return Nothing, continue with normal pattern matching
+            Nothing -> val >>= \case
 
-            Data con args | p == con ->
-                (local . first) (insertMany (zip ps (pure <$> args))) e
+                Data con args | p == con ->
+                    (local . first3) (insertMany (zip ps (pure <$> args))) e
 
-            _ ->
-                evalPat val eqs
+                _ ->
+                    evalPat val eqs

@@ -20,6 +20,11 @@ data Value p m
     | Closure Name (m (Value p m)) (EvalEnv p m)
     | PrimFun (Fun p) [Value p m]
 
+instance (Eq p) => Eq (Value p m) where
+    (==) (Value p)   (Value q)   = p == q
+    (==) (Data c vs) (Data d ws) = c == d && vs == ws
+    (==) _ _                     = error "Not comparable"
+
 toString :: (Show p) => Value p m -> String
 toString = \case
     Value p      -> show p
@@ -39,17 +44,19 @@ data Error
     | RuntimeError
     deriving (Show, Eq)
 
-type Hooks p m = Name -> m (Maybe (Value p m))
+type LookupHook p m = Name -> m (Maybe (Value p m))
 
-newtype Eval p a = Eval { unEval :: ReaderT (EvalEnv p (Eval p), Hooks p (Eval p)) (Either Error) a }
+type PatternHook p m = [(Names, m (Value p m))] -> m (Value p m) -> m (Maybe (Value p m))
+
+newtype Eval p a = Eval { unEval :: ReaderT (EvalEnv p (Eval p), LookupHook p (Eval p), PatternHook p (Eval p)) (Either Error) a }
     deriving
       ( Functor
       , Applicative
       , Monad
       , MonadError Error
-      , MonadReader (EvalEnv p (Eval p), Hooks p (Eval p)) )
+      , MonadReader (EvalEnv p (Eval p), LookupHook p (Eval p), PatternHook p (Eval p)) )
 
-runEval :: Eval p a -> (EvalEnv p (Eval p), Hooks p (Eval p)) -> Either Error a
+runEval :: Eval p a -> (EvalEnv p (Eval p), LookupHook p (Eval p), PatternHook p (Eval p)) -> Either Error a
 runEval = runReaderT . unEval
 
 primFun1 :: (Monad m) => (PrimType p a, PrimType p b) => (a -> b) -> m (Value p m)
