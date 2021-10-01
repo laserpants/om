@@ -803,11 +803,10 @@ runExprTests = do
             "(n => match n | succ(m) = m)(succ(succ(zero)))"
             (Right (Value (BasicNats.Nat 1)))
 
--- TODO
---        testRun runBasicNatsExpr
---            "(n => match n | succ(m) = m)(pack(5))"
---            (Right (Value (BasicNats.Nat 4)))
---
---        testRun runBasicNatsExpr
---            "unpack(succ(succ(succ(zero))))"
---            (Right (Value (BasicNats.Nat 3)))
+        testRun runBasicNatsExpr
+            "(n => match n | succ(m) = m)($pack(5))"
+            (Right (Value (BasicNats.Nat 4)))
+
+        testRun runBasicNatsExpr
+            "$unpack(succ(succ(succ(zero))))"
+            (Right (Value (BasicNats.Int 3)))
