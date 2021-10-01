@@ -777,8 +777,6 @@ testRun fun input expect =
 
 ------------------------------------------------------------------------------------------------------
 
-xx1 = runParserStack exprParser "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)" exampleContext2
-
 runTests :: SpecWith ()
 runTests = do
 
