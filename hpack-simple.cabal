@@ -30,7 +30,7 @@ library
       Om.Lang
       Om.Lang.Parser
       Om.Plug
-      Om.Plug.Constructor
+      Om.Plug.Constructors
       Om.Plug.Nats
       Om.Plug.Records
       Om.Plug.Records.Parser

@@ -14,7 +14,7 @@ import Om.Eval.Strict
 import Om.Lang
 import Om.Lang.Parser
 import Om.Plug
-import Om.Plug.Constructor
+import Om.Plug.Constructors
 import Om.Plug.Nats
 import Om.Plug.Records
 import Om.Prim
@@ -60,13 +60,13 @@ testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> Spec
 testEvalBasic dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicPrelude (constructorPlugin <> recordsPlugin)
+    result = evalExpr om basicPrelude (constructorsPlugin <> recordsPlugin)
 
 testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (Result BasicNatsPrim) -> SpecWith ()
 testEvalBasicNats dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicNatsPrelude (natsPlugin <> constructorPlugin <> recordsPlugin)
+    result = evalExpr om basicNatsPrelude (natsPlugin <> constructorsPlugin <> recordsPlugin)
 
 ------------------------------------------------------------------------------------------------------
 
@@ -775,13 +775,13 @@ runBasicExpr :: Text -> Either Text (Result BasicPrim)
 runBasicExpr = parseAndRun
     basicPrelude
     (Basic.parserContext <> Records.parserContext)
-    (constructorPlugin <> recordsPlugin)
+    (constructorsPlugin <> recordsPlugin)
 
 runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
 runBasicNatsExpr = parseAndRun
     basicNatsPrelude
     (BasicNats.parserContext <> Records.parserContext)
-    (constructorPlugin <> recordsPlugin <> natsPlugin)
+    (constructorsPlugin <> recordsPlugin <> natsPlugin)
 
 runExprTests :: SpecWith ()
 runExprTests = do

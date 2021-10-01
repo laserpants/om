@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Plug.Constructor 
-  ( constructorPlugin
+module Om.Plug.Constructors 
+  ( constructorsPlugin
   ) where
 
 import Data.Char (isUpper)
@@ -9,11 +9,11 @@ import Om.Plug
 import Om.Util
 import qualified Data.Text as Text
 
-constructorPlugin :: Plugin p (Eval p)
-constructorPlugin = plugin (Just constructorLookupHook) Nothing
+constructorsPlugin :: Plugin p (Eval p)
+constructorsPlugin = plugin (Just constructorsLookupHook) Nothing
 
-constructorLookupHook :: LookupHook p (Eval p)
-constructorLookupHook var
+constructorsLookupHook :: LookupHook p (Eval p)
+constructorsLookupHook var
   | hasUpperInitial var = pure (Just (Data var []))
   | otherwise = pure Nothing
 
