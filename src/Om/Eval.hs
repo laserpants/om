@@ -2,7 +2,22 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE StrictData                 #-}
-module Om.Eval where
+module Om.Eval 
+  ( Value(..)
+  , EvalEnv
+  , Error(..)
+  , LookupHook
+  , PatternHook
+  , Eval
+  , toString
+  , runEval 
+  , primFun1 
+  , primFun2 
+  , primFun3 
+  , primFun4 
+  , primFun5 
+  , primValue 
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader

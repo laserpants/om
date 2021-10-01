@@ -1,7 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE StrictData            #-}
-module Om.Prim.BasicNats where
+module Om.Prim.BasicNats 
+  ( BasicNatsPrim(..)
+  , basicNatsPrelude
+  ) where
 
 import Om.Eval
 import Om.Prim

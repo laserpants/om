@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Prim.Basic.Parser where
+module Om.Prim.Basic.Parser 
+  ( parserContext
+  ) where
 
 import Data.Functor (($>))
 import Om.Lang.Parser

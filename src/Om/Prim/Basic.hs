@@ -1,7 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE StrictData            #-}
-module Om.Prim.Basic where
+module Om.Prim.Basic 
+  ( BasicPrim(..)
+  , basicPrelude
+  ) where
 
 import Om.Eval
 import Om.Prim

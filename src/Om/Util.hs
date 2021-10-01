@@ -1,4 +1,18 @@
-module Om.Util where
+module Om.Util 
+  ( Name
+  , Names
+  , Algebra
+  , Coalgebra
+  , (<$$>)
+  , (<#>)
+  , embed1
+  , embed2
+  , embed3
+  , embed4
+  , embed5
+  , insertMany
+  , stripPrefix
+  ) where
 
 import Data.Functor.Foldable
 import Data.Map.Strict (Map)

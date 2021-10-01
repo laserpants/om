@@ -1,7 +1,11 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Eval.Strict where
+module Om.Eval.Strict 
+  ( Result
+  , PrimEnv
+  , evalExpr
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader

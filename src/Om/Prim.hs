@@ -1,7 +1,17 @@
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StrictData            #-}
-module Om.Prim where
+module Om.Prim 
+  ( PrimType(..)
+  , Fun
+  , fun1
+  , fun2
+  , fun3
+  , fun4
+  , fun5
+  , arity
+  , applyFun 
+  ) where
 
 class PrimType p t where
     toPrim   :: t -> p

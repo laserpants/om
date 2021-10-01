@@ -4,7 +4,20 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE StrictData            #-}
 {-# LANGUAGE TemplateHaskell       #-}
-module Om.Lang where
+module Om.Lang 
+  ( Om
+  , OmF(..)
+  , omVar
+  , omPrim
+  , omLit
+  , omApp
+  , omLet
+  , omIf
+  , omLam
+  , omPat
+  , wcard
+  , omData
+  ) where
 
 import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix(..))

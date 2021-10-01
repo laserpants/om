@@ -2,7 +2,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE OverloadedStrings          #-}
-module Om.Plug.Nats where
+module Om.Plug.Nats 
+  ( NatType(..)
+  , natsPlugin
+  ) where
 
 import Control.Monad.Reader
 import Data.Maybe (fromJust)

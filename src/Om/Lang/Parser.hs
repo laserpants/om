@@ -1,5 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Lang.Parser where
+module Om.Lang.Parser 
+  ( ParserContext(..)
+  , Parser
+  , commaSep
+  , exprParser
+  , keyword
+  , lexeme
+  , nameParser
+  , runParserStack
+  , token
+  , wildcard
+  ) where
 
 import Control.Monad.Combinators.Expr
 import Control.Monad.Reader

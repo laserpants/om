@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Plug.Records.Parser where
+module Om.Plug.Records.Parser 
+  ( parserContext
+  ) where
 
 import Data.Functor (($>))
 import Data.Maybe (fromMaybe)
