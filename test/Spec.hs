@@ -795,6 +795,10 @@ runExprTests = do
             "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
             (Right (Value (Basic.Int 40320)))
 
+        testRun runBasicExpr
+            "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
+            (Right (Value (Basic.Int 2)))
+
         testRun runBasicNatsExpr
             "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)"
             (Right (Value (BasicNats.Nat 5)))
