@@ -36,7 +36,7 @@ main = hspec $ do
     evalRecordsTests
     evalNatsTests
     parserTests
-    runTests
+    runExprTests
 
 ------------------------------------------------------------------------------------------------------
 
@@ -783,8 +783,8 @@ runBasicNatsExpr = parseAndRun
     (BasicNats.parserContext <> Records.parserContext)
     (constructorPlugin <> recordsPlugin <> natsPlugin)
 
-runTests :: SpecWith ()
-runTests = do
+runExprTests :: SpecWith ()
+runExprTests = do
 
     describe "Run expression (nats)" $ do
         testRun runBasicNatsExpr
