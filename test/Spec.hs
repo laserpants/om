@@ -40,25 +40,19 @@ main = hspec $ do
 
 ------------------------------------------------------------------------------------------------------
 
-parseAndRun :: (PrimType p Bool) => PrimEnv p -> ParserContext p -> Plugin p (Eval p) -> Text -> Either Text (Result p)
+parseAndRun
+  :: (PrimType p Bool)
+  => PrimEnv p
+  -> ParserContext p
+  -> Plugin p (Eval p)
+  -> Text
+  -> Either Text (Result p)
 parseAndRun primEnv context plugins input = do
     om <- mapLeft (\e -> traceShow e $ "Parser error") parse
     mapLeft (pack . show) (eval om)
   where
     parse = runParserStack exprParser input context
     eval expr = evalExpr expr primEnv plugins
-
-runBasicExpr :: Text -> Either Text (Result BasicPrim)
-runBasicExpr = parseAndRun
-    basicPrelude
-    (Basic.parserContext <> Records.parserContext)
-    (constructorPlugin <> recordsPlugin)
-
-runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
-runBasicNatsExpr = parseAndRun
-    basicNatsPrelude
-    (BasicNats.parserContext <> Records.parserContext)
-    (constructorPlugin <> recordsPlugin <> natsPlugin)
 
 ------------------------------------------------------------------------------------------------------
 
@@ -776,6 +770,18 @@ testRun fun input expect =
     it (unpack input) (fun input == expect)
 
 ------------------------------------------------------------------------------------------------------
+
+runBasicExpr :: Text -> Either Text (Result BasicPrim)
+runBasicExpr = parseAndRun
+    basicPrelude
+    (Basic.parserContext <> Records.parserContext)
+    (constructorPlugin <> recordsPlugin)
+
+runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
+runBasicNatsExpr = parseAndRun
+    basicNatsPrelude
+    (BasicNats.parserContext <> Records.parserContext)
+    (constructorPlugin <> recordsPlugin <> natsPlugin)
 
 runTests :: SpecWith ()
 runTests = do
