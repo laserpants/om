@@ -170,7 +170,7 @@ evalTests =
                                 ]
                             ])))
                     (omApp [omVar "fact", omLit (Basic.Int 8)]))
-                (Right (Value (Basic.Int 40320)))
+            (Right (Value (Basic.Int 40320)))
 
 ------------------------------------------------------------------------------------------------------
 
