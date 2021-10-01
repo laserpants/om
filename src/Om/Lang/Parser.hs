@@ -2,6 +2,7 @@
 module Om.Lang.Parser where
 
 import Control.Monad.Combinators.Expr
+import Control.Monad.Reader
 import Data.Functor (($>))
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack, unpack)
@@ -13,7 +14,7 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
-type Parser = Parsec Void Text
+type Parser = Parsec Void Text 
 
 spaces :: Parser ()
 spaces = Lexer.space
@@ -50,16 +51,14 @@ keyword tok = Megaparsec.string tok
 reserved :: [Text]
 reserved =
     [ "else"
+    , "end"
     , "if"
     , "let"
     , "match"
     , "then"
-    , "with"
     ]
 
---    , "false"
 --    , "succ"
---    , "true"
 --    , "zero"
 
 word :: Parser Text -> Parser Text
@@ -75,75 +74,74 @@ nameParser = word (withInitial (lowerChar <|> char '_'))
 wordParser :: Parser Text
 wordParser = word (pack <$> many validChar)
 
-exprParser :: Parser (Om p)
-exprParser = (`makeExprParser` []) $
+exprParser :: Parser p -> Parser (Om p)
+exprParser primParser = (`makeExprParser` []) $
     try parseApp
-        <|> parens exprParser
+        <|> parens thisParser
         <|> parser
   where
     parser = parseIf
         <|> parseLet
         <|> parsePat
         <|> try parseLam
-        <|> parseVar
+        <|> omLit <$> primParser
         <|> parsePrim
+        <|> parseVar
 
-parseIf :: Parser (Om p)
-parseIf = omIf
-    <$> (keyword "if"   *> exprParser)
-    <*> (keyword "then" *> exprParser)
-    <*> (keyword "else" *> exprParser)
+    thisParser = 
+        exprParser primParser
 
-parseLet :: Parser (Om p)
-parseLet = do
-    keyword "let"
-    name <- nameParser <* token "="
-    expr <- exprParser <* keyword "in"
-    body <- exprParser
-    pure (omLet name expr body)
+    parseIf = omIf
+        <$> (keyword "if"   *> thisParser)
+        <*> (keyword "then" *> thisParser)
+        <*> (keyword "else" *> thisParser)
 
-parseApp :: Parser (Om p)
-parseApp = do
-    fun <- funParser
-    args <- components exprParser
-    pure (omApp (fun:args))
-  where
-    funParser = try (parens exprParser)
+    parseLet = do
+        keyword "let"
+        name <- nameParser <* token "="
+        expr <- thisParser <* keyword "in"
+        body <- thisParser
+        pure (omLet name expr body)
+
+    parseApp = do
+        fun <- funParser
+        args <- components thisParser
+        pure (omApp (fun:args))
+
+    funParser = try (parens thisParser)
         <|> try (omVar <$> (word (withInitial (char '$'))))
         <|> omVar <$> wordParser
 
-parseLam :: Parser (Om p)
-parseLam = do
-    name <- nameParser
-    token "=>"
-    body <- exprParser
-    pure (omLam name body)
+    parseLam = do
+        name <- nameParser
+        token "=>"
+        body <- thisParser
+        pure (omLam name body)
 
-parsePat :: Parser (Om p)
-parsePat = do
-    keyword "match"
-    expr <- exprParser <* keyword "with"
-    clauses <- some parseClause
-    pure (omPat expr clauses)
+    parsePat = do
+        keyword "match"
+        expr <- thisParser
+        clauses <- some parseClause
+        optional (keyword "end")
+        pure (omPat expr clauses)
 
-parseClause :: Parser (Names, Om p)
-parseClause = do
-    token "|"
-    names <- try (pure <$> wildcard) <|> do
-        p <- wordParser
-        ps <- optional args <#> fromMaybe []
-        pure (p:ps)
-    token "="
-    expr <- exprParser
-    pure (names, expr)
-  where
-    args = components (wildcard <|> wordParser)
+    parseClause = do
+        token "|"
+        names <- try (pure <$> wildcard) <|> do
+            p <- wordParser
+            ps <- optional args <#> fromMaybe []
+            pure (p:ps)
+        token "="
+        expr <- thisParser
+        pure (names, expr)
+      where
+        args = components (wildcard <|> wordParser)
 
 wildcard :: Parser Name
 wildcard = token "_" $> wcard
 
 parseVar :: Parser (Om p)
-parseVar = omVar <$> nameParser
+parseVar = omVar <$> wordParser
 
 parsePrim :: Parser (Om p)
 parsePrim = char '$' *> (omPrim <$> nameParser)

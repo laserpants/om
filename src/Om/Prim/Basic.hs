@@ -7,7 +7,9 @@ import Om.Eval
 import Om.Prim
 import Om.Util
 
-data BasicPrim = Int Int | Bool Bool
+data BasicPrim 
+    = Int Int 
+    | Bool Bool
     deriving (Show, Eq)
 
 instance PrimType BasicPrim Int where

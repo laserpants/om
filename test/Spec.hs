@@ -22,7 +22,7 @@ import Text.Megaparsec
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import qualified Om.Prim.Basic as Basic
-import qualified Om.Prim.Basic as Basic
+import qualified Om.Prim.Basic.Parser as Basic
 import qualified Om.Prim.BasicNats as BasicNats
 
 main :: IO ()
@@ -48,7 +48,7 @@ testEvalBasicNats dscr om expect =
 
 ------------------------------------------------------------------------------------------------------
 
--- Cons(1, Cons(2, Nil))
+-- Cons(1, Cons(2, (Cons 3, Nil)))
 example1 :: Om BasicPrim
 example1 =
     omData "Cons"
@@ -117,8 +117,10 @@ evalTests =
             --    fact =
             --      n =>
             --        if $eq(n, 0)
-            --          then 1
-            --          else $mul(n, fact($sub(n, 1)))
+            --          then 
+            --            1
+            --          else 
+            --            $mul(n, fact($sub(n, 1)))
             --    in
             --      fact(8)
             --
@@ -144,15 +146,21 @@ evalTests =
 
 ------------------------------------------------------------------------------------------------------
 
-        testEvalBasic "Cons(1, Cons(2, Nil))"
+        testEvalBasic "Cons(1, Cons(2, (Cons 3, Nil)))"
             example1
             (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
 ------------------------------------------------------------------------------------------------------
 
-        testEvalBasic "match Cons(1, Cons(2, Nil)) with | Cons(n, _) = n [1]"
+        testEvalBasic "Cons(1, Cons(2, (Cons 3, Nil)))"
+            (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omVar "Nil"]]])
+            (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
+
+------------------------------------------------------------------------------------------------------
+
+        testEvalBasic "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(n, _) = n [1]"
             --
-            -- match Cons(1, Cons(2, Nil)) with
+            -- match Cons(1, Cons(2, (Cons 3, Nil))) 
             --   | Cons(n, _) = n
             --
             (omPat example1 [ (["Cons", "n", wcard], omVar "n") ])
@@ -160,9 +168,9 @@ evalTests =
 
 ------------------------------------------------------------------------------------------------------
 
-        testEvalBasic "match Nil with | Cons(n, _) = n | Nil = 100 [100]"
+        testEvalBasic "match Nil | Cons(n, _) = n | Nil = 100 [100]"
             --
-            -- match Nil with
+            -- match Nil 
             --   | Cons(n, _) = n
             --   | Nil = 100
             --
@@ -171,12 +179,13 @@ evalTests =
 
 ------------------------------------------------------------------------------------------------------
 
-        testEvalBasic "match Cons(1, Cons(2, Nil)) with | Cons(_, xs) = match xs with | Cons(n, _) = n | Nil = 100 [2]"
+        testEvalBasic "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [2]"
             --
-            -- match Cons(1, Cons(2, Nil)) with
+            -- match Cons(1, Cons(2, Cons (3, Nil))) 
             --   | Cons(_, xs) =
-            --       match xs with
+            --       match xs 
             --         | Cons(n, _) = n
+            --         end
             --   | Nil = 100
             --
             (omPat example1
@@ -220,9 +229,9 @@ evalRecordsTests = do
             --   r =
             --     { one = 1, two = 2 }   
             --   in
-            --     match r with
+            --     match r 
             --       | #(row) = 
-            --           match row with
+            --           match row 
             --             | { one = o | _ } = o
             --
             (omLet "r"
@@ -242,9 +251,9 @@ evalRecordsTests = do
             --   r =
             --     { two = 2, one = 1 }   
             --   in
-            --     match r with
+            --     match r 
             --       | #(row) = 
-            --           match row with
+            --           match row 
             --             | { one = o | _ } = o
             --
             (omLet "r"
@@ -264,7 +273,7 @@ evalRecordsTests = do
             --   r =
             --     { one = 1, two = 2 }   
             --   in
-            --     match r with
+            --     match r 
             --       | { one = o | two = t } = t
             --
             --               |||
@@ -274,11 +283,11 @@ evalRecordsTests = do
             --   r =
             --     { one = 1, two = 2 }   
             --   in
-            --     match r with
+            --     match r 
             --       | #(row) = 
-            --           match row with
+            --           match row 
             --             | { one = o | r1 } = 
-            --                 match r1 with
+            --                 match r1 
             --                   | { two = t } = t
             (omLet "r"
                 example2
@@ -302,11 +311,11 @@ evalRecordsTests = do
             --   r =
             --     { two = 2, one = 1 }   
             --   in
-            --     match r with
+            --     match r 
             --       | #(row) = 
-            --           match row with
+            --           match row 
             --             | { one = o | r1 } = 
-            --                 match r1 with
+            --                 match r1 
             --                   | { two = t } = t
             (omLet "r"
                 example3
@@ -330,7 +339,7 @@ evalRecordsTests = do
             --   r =
             --     { one = 1, two = 2 }   
             --   in
-            --     match r with
+            --     match r 
             --       | { one = o | r } = r
             --
             --               |||
@@ -340,9 +349,9 @@ evalRecordsTests = do
             --   r =
             --     { one = 1, two = 2 }   
             --   in
-            --     match r with
+            --     match r 
             --       | #(row) = 
-            --           match row with
+            --           match row 
             --             | { one = o | r } = r
             (omLet "r"
                 example2
@@ -361,7 +370,7 @@ evalRecordsTests = do
             --   r =
             --     { one = 1 }   
             --   in
-            --     match r with
+            --     match r 
             --       | { one = o | r } = r
             --
             --               |||
@@ -371,9 +380,9 @@ evalRecordsTests = do
             --   r =
             --     { one = 1 }   
             --   in
-            --     match r with
+            --     match r 
             --       | #(row) = 
-            --           match row with
+            --           match row 
             --             | { one = o | r } = r
             (omLet "r"
                 example4
@@ -437,7 +446,7 @@ evalNatsTests = do
 
     describe "Eval nats (pattern matching)" $ do
 
-        testEvalBasicNats "match succ(succ(succ(zero))) with | succ(n) = n [2]"
+        testEvalBasicNats "match succ(succ(succ(zero))) | succ(n) = n [2]"
             (omPat 
                 (omApp 
                     [ omVar "succ"
@@ -452,7 +461,7 @@ evalNatsTests = do
                 [(["succ", "n"], omVar "n")])
             (Right (Value (BasicNats.Nat 2)))
 
-        testEvalBasicNats "match succ(succ(succ(zero))) with | zero = 1 | succ(n) = n [2]"
+        testEvalBasicNats "match succ(succ(succ(zero))) | zero = 1 | succ(n) = n [2]"
             (omPat 
                 (omApp 
                     [ omVar "succ"
@@ -469,7 +478,7 @@ evalNatsTests = do
                 ])
             (Right (Value (BasicNats.Nat 2)))
 
-        testEvalBasicNats "match zero with | zero = 1 | succ(n) = n [1]"
+        testEvalBasicNats "match zero | zero = 1 | succ(n) = n [1]"
             (omPat 
                 (omVar "zero")
                 [ (["zero"], omLit (BasicNats.Nat 1))
@@ -477,7 +486,7 @@ evalNatsTests = do
                 ])
             (Right (Value (BasicNats.Nat 1)))
 
-        testEvalBasicNats "match zero with | succ(n) = n | zero = 1 [1]"
+        testEvalBasicNats "match zero | succ(n) = n | zero = 1 [1]"
             (omPat 
                 (omVar "zero")
                 [ (["succ", "n"], omVar "n")
@@ -485,7 +494,7 @@ evalNatsTests = do
                 ])
             (Right (Value (BasicNats.Nat 1)))
 
-        testEvalBasicNats "match succ(succ(succ(zero))) with | succ(n) = n | zero = 1 [2]"
+        testEvalBasicNats "match succ(succ(succ(zero))) | succ(n) = n | zero = 1 [2]"
             (omPat 
                 (omApp 
                     [ omVar "succ"
@@ -514,78 +523,135 @@ parserTests :: SpecWith ()
 parserTests = do
 
     describe "Parser" $ do
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "let x = y in z"
             (omLet "x" (omVar "y") (omVar "z") :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "Cons(x, xs)"
             (omApp [omVar "Cons", omVar "x", omVar "xs"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "fun(x)"
             (omApp [omVar "fun", omVar "x"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "$fun(x)"
             (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "$fun"
             (omVar "$fun" :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
+            "($fun)"
+            (omVar "$fun" :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
             "if f(x, y) then z else z => z"
             (omIf (omApp [omVar "f", omVar "x", omVar "y"]) (omVar "z") (omLam "z" (omVar "z")) :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "(x => x)(y)"
             (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "((x => x)(y))"
             (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "(((x => x))(y))"
             (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "($fun(x))"
             (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "(($fun(x)))"
             (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "x"
             (omVar "x" :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "(x)"
             (omVar "x" :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "((x))"
             (omVar "x" :: Om BasicPrim)
 
-        testParse exprParser 
-            "match xs with | _ = x"
+        testParse (exprParser Basic.primParser) 
+            "match xs | _ = x"
             (omPat (omVar "xs") [(["$_"], omVar "x")] :: Om BasicPrim)
 
-        testParse exprParser 
-            "match xs with | Cons(x, xs) = x | Nil = y"
+        testParse (exprParser Basic.primParser) 
+            "match xs | Cons(x, xs) = x | Nil = y"
             (omPat (omVar "xs") [(["Cons", "x", "xs"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
-        testParse exprParser 
-            "match xs with | Cons(x, _) = x | Nil = y"
+        testParse (exprParser Basic.primParser) 
+            "match xs | Cons(x, _) = x | Nil = y"
             (omPat (omVar "xs") [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
+            "match Cons(x, y) | Cons(x, _) = x | Nil = y"
+            (omPat (omApp [omVar "Cons", omVar "x", omVar "y"]) [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
+            "match Nil | Cons(x, _) = x | Nil = y"
+            (omPat (omVar "Nil") [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
             "let x = y => y in x(y)"
             (omLet "x" (omLam "y" (omVar "y")) (omApp [omVar "x", omVar "y"]) :: Om BasicPrim)
 
-        testParse exprParser 
+        testParse (exprParser Basic.primParser) 
             "let x = (y => y) in x(y)"
             (omLet "x" (omLam "y" (omVar "y")) (omApp [omVar "x", omVar "y"]) :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
+            "Nil"
+            (omVar "Nil" :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
+            "(Nil)"
+            (omVar "Nil" :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
+            "1"
+            (omLit (Basic.Int 1) :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
+            "(1)"
+            (omLit (Basic.Int 1) :: Om BasicPrim)
+
+        testParse (exprParser Basic.primParser) 
+            "Cons(1, Cons(2, Cons (3, Nil)))"
+            (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omVar "Nil"]]])
+
+        testParse (exprParser Basic.primParser) 
+            "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
+            (omLet "fact"
+                (omLam "n"
+                    (omIf
+                        (omApp [omPrim "eq", omVar "n", omLit (Basic.Int 0)])
+                        (omLit (Basic.Int 1))
+                        (omApp
+                            [ omPrim "mul"
+                            , omVar "n"
+                            , omApp
+                                [ omVar "fact"
+                                , omApp
+                                    [ omPrim "sub"
+                                    , omVar "n"
+                                    , omLit (Basic.Int 1)
+                                    ]
+                                ]
+                            ])))
+                    (omApp [omVar "fact", omLit (Basic.Int 8)]))
+
+        testParse (exprParser Basic.primParser) 
+            "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
+            (omPat (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omVar "Nil"]]]) [ (["Cons", wcard, "xs"], (omPat (omVar "xs") [ (["Cons", "n", wcard], omVar "n") ])) , (["Nil"], omLit (Basic.Int 100)) ])
