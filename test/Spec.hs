@@ -48,7 +48,7 @@ parseAndRun
   -> Text
   -> Either Text (Result p)
 parseAndRun primEnv context plugins input = do
-    om <- mapLeft (\e -> traceShow e $ "Parser error") parse
+    om <- mapLeft (const "Parser error") parse
     mapLeft (pack . show) (eval om)
   where
     parse = runParserStack exprParser input context
