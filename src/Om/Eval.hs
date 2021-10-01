@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE StrictData                 #-}
-module Om.Eval 
+module Om.Eval
   ( Value(..)
   , EvalEnv
   , Error(..)
@@ -10,13 +10,13 @@ module Om.Eval
   , PatternHook
   , Eval
   , toString
-  , runEval 
-  , primFun1 
-  , primFun2 
-  , primFun3 
-  , primFun4 
-  , primFun5 
-  , primValue 
+  , runEval
+  , primFun1
+  , primFun2
+  , primFun3
+  , primFun4
+  , primFun5
+  , primValue
   ) where
 
 import Control.Monad.Except

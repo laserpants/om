@@ -4,7 +4,7 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE StrictData            #-}
 {-# LANGUAGE TemplateHaskell       #-}
-module Om.Lang 
+module Om.Lang
   ( Om
   , OmF(..)
   , omVar

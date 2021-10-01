@@ -1,4 +1,4 @@
-module Om.Util 
+module Om.Util
   ( Name
   , Names
   , Algebra
