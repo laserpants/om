@@ -810,3 +810,7 @@ runExprTests = do
         testRun runBasicNatsExpr
             "$unpack(succ(succ(succ(zero))))"
             (Right (Value (BasicNats.Int 3)))
+
+        testRun runBasicNatsExpr
+            "let m = succ(succ(zero)) in let n = $pack(3) in $add(m, n)"
+            (Right (Value (BasicNats.Nat 5)))
