@@ -33,9 +33,12 @@ library
       Om.Plug.Constructor
       Om.Plug.Nats
       Om.Plug.Records
+      Om.Plug.Records.Parser
       Om.Prim
       Om.Prim.Basic
+      Om.Prim.Basic.Parser
       Om.Prim.BasicNats
+      Om.Prim.BasicNats.Parser
       Om.Util
   other-modules:
       Paths_hpack_simple

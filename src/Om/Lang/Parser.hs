@@ -14,36 +14,57 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char as Megaparsec
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
-type Parser = Parsec Void Text 
+data ParserContext p = ParserContext
+  { contextReserved      :: [Text]
+  , contextConstructors  :: [Text]
+  , contextPrimParser    :: Parser p p
+  , contextExprParser    :: Parser p (Om p)
+  , contextPatternParser :: Parser p [Name]
+  }
 
-spaces :: Parser ()
+type Parser p = ParsecT Void Text (Reader (ParserContext p))
+
+instance Semigroup (ParserContext p) where
+    ParserContext r1 c1 pp1 ep1 ptp1 <> ParserContext r2 c2 pp2 ep2 ptp2 =
+        ParserContext (r1 <> r2) (c1 <> c2) (pp1 <|> pp2) (ep1 <|> ep2) (ptp1 <|> ptp2)
+
+notImplemented :: Parser p q
+notImplemented = fail "Not implemented"
+
+instance Monoid (ParserContext p) where
+    mempty = ParserContext [] [] notImplemented notImplemented notImplemented
+
+runParserStack :: Parser p a -> Text -> ParserContext p -> Either (ParseErrorBundle Text Void) a
+runParserStack parser = runReader . runParserT parser ""
+
+spaces :: Parser p ()
 spaces = Lexer.space
     space1
     (Lexer.skipLineComment "--")
     (Lexer.skipBlockComment "{-" "-}")
 
-lexeme :: Parser a -> Parser a
+lexeme :: Parser p a -> Parser p a
 lexeme = Lexer.lexeme spaces
 
-token :: Text -> Parser Text
+token :: Text -> Parser p Text
 token = Lexer.symbol spaces
 
-parens :: Parser a -> Parser a
+parens :: Parser p a -> Parser p a
 parens = between (token "(") (token ")")
 
-commaSep :: Parser a -> Parser [a]
+commaSep :: Parser p a -> Parser p [a]
 commaSep parser = parser `sepBy1` token ","
 
-components :: Parser a -> Parser [a]
+components :: Parser p a -> Parser p [a]
 components = parens . commaSep
 
-validChar :: Parser Char
+validChar :: Parser p Char
 validChar = alphaNumChar <|> char '_'
 
-withInitial :: Parser Char -> Parser Text
+withInitial :: Parser p Char -> Parser p Text
 withInitial parser = pack <$> ((:) <$> parser <*> many validChar)
 
-keyword :: Text -> Parser ()
+keyword :: Text -> Parser p ()
 keyword tok = Megaparsec.string tok
     *> notFollowedBy alphaNumChar
     *> spaces
@@ -58,90 +79,92 @@ reserved =
     , "then"
     ]
 
---    , "succ"
---    , "zero"
-
-word :: Parser Text -> Parser Text
+word :: Parser p Text -> Parser p Text
 word parser = lexeme $ try $ do
     var <- parser
-    if var `elem` reserved
+    ParserContext extra _ _ _ _ <- ask
+    if var `elem` (reserved <> extra)
         then fail ("Reserved word " <> unpack var)
         else pure var
 
-nameParser :: Parser Text
+nameParser :: Parser p Text
 nameParser = word (withInitial (lowerChar <|> char '_'))
 
-wordParser :: Parser Text
-wordParser = word (pack <$> many validChar)
+wordParser :: Parser p Text
+wordParser = word (pack <$> some validChar)
 
-exprParser :: Parser p -> Parser (Om p)
-exprParser primParser = (`makeExprParser` []) $
+exprParser :: Parser p (Om p)
+exprParser = (`makeExprParser` []) $
     try parseApp
-        <|> parens thisParser
+        <|> parens exprParser
         <|> parser
   where
     parser = parseIf
         <|> parseLet
         <|> parsePat
         <|> try parseLam
-        <|> omLit <$> primParser
-        <|> parsePrim
+        <|> (ask >>= \(ParserContext _ _ primParser _ _) -> omLit <$> primParser)
+        <|> (ask >>= \(ParserContext _ _ _ extraParser _) -> extraParser)
         <|> parseVar
 
-    thisParser = 
-        exprParser primParser
-
     parseIf = omIf
-        <$> (keyword "if"   *> thisParser)
-        <*> (keyword "then" *> thisParser)
-        <*> (keyword "else" *> thisParser)
+        <$> (keyword "if"   *> exprParser)
+        <*> (keyword "then" *> exprParser)
+        <*> (keyword "else" *> exprParser)
 
     parseLet = do
         keyword "let"
         name <- nameParser <* token "="
-        expr <- thisParser <* keyword "in"
-        body <- thisParser
+        expr <- exprParser <* keyword "in"
+        body <- exprParser
         pure (omLet name expr body)
 
     parseApp = do
-        fun <- funParser
-        args <- components thisParser
+        fun <- parseFun
+        args <- components exprParser
         pure (omApp (fun:args))
 
-    funParser = try (parens thisParser)
-        <|> try (omVar <$> (word (withInitial (char '$'))))
-        <|> omVar <$> wordParser
+    parseFun = try (parens exprParser) 
+        <|> omVar <$> ((word (withInitial (char '$')))
+        <|> parseExtraConstructor
+        <|> wordParser)
 
     parseLam = do
         name <- nameParser
         token "=>"
-        body <- thisParser
+        body <- exprParser
         pure (omLam name body)
 
     parsePat = do
         keyword "match"
-        expr <- thisParser
+        expr <- exprParser
         clauses <- some parseClause
         optional (keyword "end")
         pure (omPat expr clauses)
 
     parseClause = do
+        ParserContext _ _ _ _ extraPatternParser <- ask
         token "|"
-        names <- try (pure <$> wildcard) <|> do
-            p <- wordParser
+        names <- try (pure <$> wildcard) <|> extraPatternParser <|> do
+            p <- wordParser <|> parseExtraConstructor
             ps <- optional args <#> fromMaybe []
             pure (p:ps)
         token "="
-        expr <- thisParser
+        expr <- exprParser
         pure (names, expr)
       where
         args = components (wildcard <|> wordParser)
 
-wildcard :: Parser Name
+wildcard :: Parser p Name
 wildcard = token "_" $> wcard
 
-parseVar :: Parser (Om p)
-parseVar = omVar <$> wordParser
+parseVar :: Parser p (Om p)
+parseVar = primFun 
+    <|> omVar <$> (parseExtraConstructor <|> wordParser)
+  where
+    primFun = char '$' *> (omPrim <$> nameParser)
 
-parsePrim :: Parser (Om p)
-parsePrim = char '$' *> (omPrim <$> nameParser)
+parseExtraConstructor :: Parser p Text
+parseExtraConstructor = do
+    ParserContext _ constructors _ _ _ <- ask
+    choice (constructors <#> \tok -> keyword tok *> pure tok)

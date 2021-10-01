@@ -5,7 +5,10 @@ import Test.Hspec
 
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Text (Text, unpack)
+import Data.Either (isLeft)
+import Data.Either.Extra (mapLeft)
+import Data.Text (Text, unpack, pack)
+import Debug.Trace
 import Om.Eval
 import Om.Eval.Strict
 import Om.Lang
@@ -21,9 +24,11 @@ import Om.Util
 import Text.Megaparsec
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
+import qualified Om.Plug.Records.Parser as Records
 import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.Basic.Parser as Basic
 import qualified Om.Prim.BasicNats as BasicNats
+import qualified Om.Prim.BasicNats.Parser as BasicNats
 
 main :: IO ()
 main = hspec $ do
@@ -31,6 +36,29 @@ main = hspec $ do
     evalRecordsTests
     evalNatsTests
     parserTests
+    runTests
+
+------------------------------------------------------------------------------------------------------
+
+parseAndRun :: (PrimType p Bool) => PrimEnv p -> ParserContext p -> Plugin p (Eval p) -> Text -> Either Text (Result p)
+parseAndRun primEnv context plugins input = do
+    om <- mapLeft (\e -> traceShow e $ "Parser error") parse
+    mapLeft (pack . show) (eval om)
+  where
+    parse = runParserStack exprParser input context
+    eval expr = evalExpr expr primEnv plugins
+
+runBasicExpr :: Text -> Either Text (Result BasicPrim)
+runBasicExpr = parseAndRun
+    basicPrelude
+    (Basic.parserContext <> Records.parserContext)
+    (constructorPlugin <> recordsPlugin)
+
+runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
+runBasicNatsExpr = parseAndRun
+    basicNatsPrelude
+    (BasicNats.parserContext <> Records.parserContext)
+    (constructorPlugin <> recordsPlugin <> natsPlugin)
 
 ------------------------------------------------------------------------------------------------------
 
@@ -103,6 +131,12 @@ example4 =
             , omData "{}" []
             ]
         ]
+
+exampleContext1 :: ParserContext BasicPrim
+exampleContext1 = Basic.parserContext <> Records.parserContext
+
+exampleContext2 :: ParserContext BasicNatsPrim
+exampleContext2 = BasicNats.parserContext <> Records.parserContext
 
 ------------------------------------------------------------------------------------------------------
 
@@ -512,9 +546,13 @@ evalNatsTests = do
 
 ------------------------------------------------------------------------------------------------------
 
-testParse :: (Eq a) => Parser a -> Text -> a -> SpecWith ()
-testParse parser input expect =
-    it (unpack input) (runParser parser "" input == Right expect)
+testParse :: (Eq a) => Parser p a -> ParserContext p -> Text -> a -> SpecWith ()
+testParse parser context input expect =
+    it (unpack input) (runParserStack parser input context == Right expect)
+
+testParseFail :: (Eq a) => Parser p a -> ParserContext p -> Text -> SpecWith ()
+testParseFail parser context input =
+    it (unpack input) (isLeft (runParserStack parser input context))
 
 ------------------------------------------------------------------------------------------------------
 
@@ -522,115 +560,119 @@ parserTests :: SpecWith ()
 parserTests = do
 
     describe "Parser" $ do
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "let x = y in z"
             (omLet "x" (omVar "y") (omVar "z") :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "Cons(x, xs)"
             (omApp [omVar "Cons", omVar "x", omVar "xs"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "fun(x)"
             (omApp [omVar "fun", omVar "x"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "$fun(x)"
             (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "$fun"
             (omVar "$fun" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "($fun)"
             (omVar "$fun" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "if f(x, y) then z else z => z"
             (omIf (omApp [omVar "f", omVar "x", omVar "y"]) (omVar "z") (omLam "z" (omVar "z")) :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "(x => x)(y)"
             (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "((x => x)(y))"
             (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "(((x => x))(y))"
             (omApp [omLam "x" (omVar "x"), omVar "y"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "($fun(x))"
             (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "(($fun(x)))"
             (omApp [omVar "$fun", omVar "x"] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "x"
             (omVar "x" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "(x)"
             (omVar "x" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "((x))"
             (omVar "x" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "match xs | _ = x"
             (omPat (omVar "xs") [(["$_"], omVar "x")] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "match xs | Cons(x, xs) = x | Nil = y"
             (omPat (omVar "xs") [(["Cons", "x", "xs"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
+            "match xs | Cons(x, xs) = x | Nil = y end"
+            (omPat (omVar "xs") [(["Cons", "x", "xs"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+
+        testParse exprParser exampleContext1
             "match xs | Cons(x, _) = x | Nil = y"
             (omPat (omVar "xs") [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "match Cons(x, y) | Cons(x, _) = x | Nil = y"
             (omPat (omApp [omVar "Cons", omVar "x", omVar "y"]) [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "match Nil | Cons(x, _) = x | Nil = y"
             (omPat (omVar "Nil") [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "let x = y => y in x(y)"
             (omLet "x" (omLam "y" (omVar "y")) (omApp [omVar "x", omVar "y"]) :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "let x = (y => y) in x(y)"
             (omLet "x" (omLam "y" (omVar "y")) (omApp [omVar "x", omVar "y"]) :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "Nil"
             (omVar "Nil" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "(Nil)"
             (omVar "Nil" :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "1"
             (omLit (Basic.Int 1) :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "(1)"
             (omLit (Basic.Int 1) :: Om BasicPrim)
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "Cons(1, Cons(2, Cons (3, Nil)))"
             (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omVar "Nil"]]])
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext1
             "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
             (omLet "fact"
                 (omLam "n"
@@ -651,7 +693,7 @@ parserTests = do
                             ])))
                     (omApp [omVar "fact", omLit (Basic.Int 8)]))
 
-        testParse (exprParser Basic.primParser)
+        testParse exprParser Basic.parserContext
             "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
             (omPat
                 (omData "Cons"
@@ -669,7 +711,7 @@ parserTests = do
                                 ])
 
     describe "Parser (nats)" $ do
-        testParse (exprParser Basic.primParser)
+        testParse exprParser exampleContext2
             "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)"
             (omLet "m"
                 (omApp
@@ -696,3 +738,66 @@ parserTests = do
                         , omVar "n"
                         ])))
 
+        testParse exprParser exampleContext2
+            "match n | succ(n) = n end"
+            (omPat (omVar "n")
+                [ (["succ", "n"], omVar "n")
+                ])
+
+    describe "Parser (records)" $ do
+        testParse exprParser (Basic.parserContext <> Records.parserContext)
+            "{ foo = 1, baz = 2 }"
+            (omData "#" [omData "{foo}" [omLit (Basic.Int 1), omData "{baz}" [omLit (Basic.Int 2), omVar "{}"]]])
+
+    describe "Parser (pattern matching of records)" $ do
+        testParse exprParser (Basic.parserContext <> Records.parserContext)
+            "match xs | { foo = a } = a end"
+            (omPat (omVar "xs")
+                [ (["{foo}", "a", "{}"], omVar "a")
+                ])
+
+        testParse exprParser (Basic.parserContext <> Records.parserContext)
+            "match xs | { foo = _ | r } = r end"
+            (omPat (omVar "xs")
+                [ (["{foo}", "$_", "r"], omVar "r")
+                ])
+
+    describe "Parser (failures)" $ do
+        testParseFail exprParser BasicNats.parserContext
+            "let true = foo in moo"
+
+        testParseFail exprParser BasicNats.parserContext
+            "let zero = foo in moo"
+
+------------------------------------------------------------------------------------------------------
+
+testRun :: (Eq p) => (Text -> Either Text (Result p)) -> Text -> Either Text (Result p) -> SpecWith ()
+testRun fun input expect =
+    it (unpack input) (fun input == expect)
+
+------------------------------------------------------------------------------------------------------
+
+xx1 = runParserStack exprParser "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)" exampleContext2
+
+runTests :: SpecWith ()
+runTests = do
+
+    describe "Run expression (nats)" $ do
+        testRun runBasicNatsExpr
+            "true"
+            (Right (Value (BasicNats.Bool True)))
+
+        testRun runBasicExpr
+            "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
+            (Right (Value (Basic.Int 40320)))
+
+        testRun runBasicNatsExpr
+            "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)"
+            (Right (Value (BasicNats.Nat 5)))
+
+        testRun runBasicNatsExpr
+            "(n => match n | succ(m) = m)(succ(succ(zero)))"
+            (Right (Value (BasicNats.Nat 1)))
+
+            -- TODO
+            -- "(n => match n | succ(m) = m)(pack(5))"

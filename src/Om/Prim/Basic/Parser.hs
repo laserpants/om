@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Om.Prim.Basic.Parser where
 
 import Data.Functor (($>))
@@ -6,8 +7,8 @@ import Om.Prim.Basic
 import Text.Megaparsec hiding (token)
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
-primParser :: Parser BasicPrim
-primParser = 
+primParser :: Parser BasicPrim BasicPrim
+primParser =
     parseTrue
     <|> parseFalse
     <|> parseIntegral
@@ -15,3 +16,12 @@ primParser =
     parseIntegral = Int <$> lexeme Lexer.decimal
     parseTrue  = keyword "true"  $> Bool True
     parseFalse = keyword "false" $> Bool False
+
+parserContext :: ParserContext BasicPrim
+parserContext = mempty
+    { contextReserved =
+        [ "true"
+        , "false"
+        ]
+    , contextPrimParser = primParser
+    }
