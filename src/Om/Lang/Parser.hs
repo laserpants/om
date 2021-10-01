@@ -1,5 +1,7 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Lang.Parser 
+{-# LANGUAGE RecordWildCards   #-}
+module Om.Lang.Parser
   ( ParserContext(..)
   , Parser
   , commaSep
@@ -93,8 +95,8 @@ reserved =
 word :: Parser p Text -> Parser p Text
 word parser = lexeme $ try $ do
     var <- parser
-    ParserContext extra _ _ _ _ <- ask
-    if var `elem` (reserved <> extra)
+    ParserContext{ contextReserved } <- ask
+    if var `elem` (reserved <> contextReserved)
         then fail ("Reserved word " <> unpack var)
         else pure var
 
@@ -114,8 +116,8 @@ exprParser = (`makeExprParser` []) $
         <|> parseLet
         <|> parsePat
         <|> try parseLam
-        <|> (ask >>= \(ParserContext _ _ primParser _ _) -> omLit <$> primParser)
-        <|> (ask >>= \(ParserContext _ _ _ extraParser _) -> extraParser)
+        <|> (ask >>= omLit <$$> contextPrimParser)
+        <|> (ask >>= contextExprParser)
         <|> parseVar
 
     parseIf = omIf
@@ -135,7 +137,7 @@ exprParser = (`makeExprParser` []) $
         args <- components exprParser
         pure (omApp (fun:args))
 
-    parseFun = try (parens exprParser) 
+    parseFun = try (parens exprParser)
         <|> omVar <$> ((word (withInitial (char '$')))
         <|> parseExtraConstructor
         <|> wordParser)
@@ -154,9 +156,9 @@ exprParser = (`makeExprParser` []) $
         pure (omPat expr clauses)
 
     parseClause = do
-        ParserContext _ _ _ _ extraPatternParser <- ask
+        ParserContext{ contextPatternParser } <- ask
         token "|"
-        names <- try (pure <$> wildcard) <|> extraPatternParser <|> do
+        names <- try (pure <$> wildcard) <|> contextPatternParser <|> do
             p <- wordParser <|> parseExtraConstructor
             ps <- optional args <#> fromMaybe []
             pure (p:ps)
@@ -170,12 +172,12 @@ wildcard :: Parser p Name
 wildcard = token "_" $> wcard
 
 parseVar :: Parser p (Om p)
-parseVar = primFun 
+parseVar = primFun
     <|> omVar <$> (parseExtraConstructor <|> wordParser)
   where
     primFun = char '$' *> (omPrim <$> nameParser)
 
 parseExtraConstructor :: Parser p Text
 parseExtraConstructor = do
-    ParserContext _ constructors _ _ _ <- ask
-    choice (constructors <#> \tok -> keyword tok *> pure tok)
+    ParserContext{ contextConstructors } <- ask
+    choice (contextConstructors <#> \tok -> keyword tok *> pure tok)
