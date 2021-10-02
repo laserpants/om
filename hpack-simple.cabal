@@ -82,6 +82,12 @@ test-suite hpack-simple-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Data
+      Om.Eval.StrictTests
+      Om.Lang.ParserTests
+      Om.Plug.NatsTests
+      Om.Plug.RecordsTests
+      Om.RunTests
       Paths_hpack_simple
   hs-source-dirs:
       test
