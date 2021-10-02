@@ -97,6 +97,14 @@ evalTests = do
             (omVar "x")
             (Left (UnboundIdentifier "x"))
 
+        testEvalBasic "X"
+            (omData "X" [])
+            (Right (Data "X" []))
+
+        testEvalBasic "X(1)"
+            (omData "X" [omLit (Basic.Int 1)])
+            (Right (Data "X" [Value (Basic.Int 1)]))
+
         testEvalBasic "if 5 then 1 else 2"
             (omIf (omLit (Basic.Int 5))
                 (omLit (Basic.Int 1))
