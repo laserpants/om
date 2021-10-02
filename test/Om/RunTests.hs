@@ -25,18 +25,25 @@ import qualified Om.Prim.BasicNats.Parser as BasicNats
 runExprTests :: SpecWith ()
 runExprTests = do
 
-    describe "Run expression (nats)" $ do
-        testRun runBasicNatsExpr
-            "true"
-            (Right (Value (BasicNats.Bool True)))
+    describe "Run expression" $ do
 
         testRun runBasicExpr
-            "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
+            "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8) [40320]"
             (Right (Value (Basic.Int 40320)))
 
         testRun runBasicExpr
-            "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
+            "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [2]"
             (Right (Value (Basic.Int 2)))
+
+        testRun runBasicExpr
+            "match Nil | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [100]"
+            (Right (Value (Basic.Int 100)))
+
+    describe "Run expression (nats)" $ do
+
+        testRun runBasicNatsExpr
+            "true"
+            (Right (Value (BasicNats.Bool True)))
 
         testRun runBasicNatsExpr
             "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)"
