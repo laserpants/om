@@ -39,6 +39,7 @@ parseRecordPattern = braces $ do
 
 parserContext :: ParserContext p
 parserContext = mempty
-    { contextExprParser = parseRecord
+    { contextConstructors = ["#"]
+    , contextExprParser = parseRecord
     , contextPatternParser = parseRecordPattern
     }

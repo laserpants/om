@@ -65,6 +65,24 @@ runExprTests = do
             "let m = succ(succ(zero)) in let n = $pack(3) in $add(m, n)"
             (Right (Value (BasicNats.Nat 5)))
 
+    describe "Run expression (records)" $ do
+
+        testRun runBasicNatsExpr
+            "let r = { a = 5 } in match r | #(row) = match row | { a = a } = a"
+            (Right (Value (BasicNats.Int 5)))
+
+        testRun runBasicNatsExpr
+            "let r = { a = 5 } in match r | #(row) = match row | { a = _ | r } = r"
+            (Right (Data "{}" []))
+
+        testRun runBasicNatsExpr
+            "let r = { a = 5, b = 4 } in match r | #(row) = match row | { a = _ | r } = r"
+            (Right (Data "{b}" [Value (BasicNats.Int 4), Data "{}" []]))
+
+        testRun runBasicNatsExpr
+            "let r = { a = 5, b = 4 } in match r | #(row) = match row | { a = n | _ } = n"
+            (Right (Value (BasicNats.Int 5)))
+
 parseAndRun
   :: (PrimType p Bool)
   => PrimEnv p
