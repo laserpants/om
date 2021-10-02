@@ -10,7 +10,7 @@ module Om.Eval.Strict
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Functor.Foldable
-import Data.Tuple.Extra (first, fst3, snd3, thd3, first3, second3, third3)
+import Data.Tuple.Extra (first)
 import Om.Eval
 import Om.Lang
 import Om.Plug
