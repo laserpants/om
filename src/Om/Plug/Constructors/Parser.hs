@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Om.Plug.Constructors.Parser
   ( parser
   ) where

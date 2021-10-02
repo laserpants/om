@@ -85,8 +85,8 @@ evalTests = do
             --
             (omPat example1
                 [ (["Cons", wcard, "xs"],
-                    (omPat (omVar "xs")
-                        [ (["Cons", "n", wcard], omVar "n") ]))
+                    omPat (omVar "xs")
+                        [ (["Cons", "n", wcard], omVar "n") ])
                 , (["Nil"], omLit (Basic.Int 100))
                 ])
             (Right (Value (Basic.Int 2)))

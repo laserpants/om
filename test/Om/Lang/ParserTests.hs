@@ -166,9 +166,9 @@ parserTests = do
                             [ omLit (Basic.Int 3)
                             , omData "Nil" []]]])
                                 [ (["Cons", wcard, "xs"],
-                                    (omPat (omVar "xs")
+                                    omPat (omVar "xs")
                                         [ (["Cons", "n", wcard], omVar "n")
-                                        ]))
+                                        ])
                                 , (["Nil"], omLit (Basic.Int 100))
                                 ])
 

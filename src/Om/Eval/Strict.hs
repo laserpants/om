@@ -10,6 +10,7 @@ module Om.Eval.Strict
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Functor.Foldable
+import Data.Maybe (fromMaybe)
 import Data.Tuple.Extra (first)
 import Om.Eval
 import Om.Lang
@@ -122,9 +123,7 @@ evalVar var = do
         -- If hooks return Nothing, do regular lookup
         Nothing -> do
             val <- asks (Map.lookup var . evalEnv)
-            case val of
-                Just val -> val
-                Nothing  -> throwError (UnboundIdentifier (stripPrefix "$" var))
+            fromMaybe (throwError (UnboundIdentifier (stripPrefix "$" var))) val
 
 evalCon
   :: (MonadError Error m, MonadReader (EvalContext p m) m)
@@ -135,8 +134,7 @@ evalCon con = do
     res <- hook con
     case res of
         Just v1 -> pure v1
-        Nothing -> do
-            pure (Data con [])
+        Nothing -> pure (Data con [])
 
 evalPat
   :: (MonadError Error m, MonadReader (EvalContext p m) m)

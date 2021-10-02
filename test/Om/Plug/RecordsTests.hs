@@ -105,14 +105,13 @@ evalRecordsTests = do
                 (omPat
                     (omVar "r")
                     [(["#", "row"],
-                        (omPat
+                        omPat
                             (omVar "row")
                             [(["{one}", "o", "r1"],
-                                (omPat
+                                omPat
                                     (omVar "r1")
                                     [(["{two}", "t", "{}"], omVar "t")]
-                                )
-                            )])
+                            )]
                     )]))
             (Right (Value (Basic.Int 2)))
 
@@ -133,14 +132,13 @@ evalRecordsTests = do
                 (omPat
                     (omVar "r")
                     [(["#", "row"],
-                        (omPat
+                        omPat
                             (omVar "row")
                             [(["{one}", "o", "r1"],
-                                (omPat
+                                omPat
                                     (omVar "r1")
                                     [(["{two}", "t", "{}"], omVar "t")]
-                                )
-                            )])
+                            )]
                     )]))
             (Right (Value (Basic.Int 2)))
 
@@ -169,9 +167,9 @@ evalRecordsTests = do
                 (omPat
                     (omVar "r")
                     [(["#", "row"],
-                        (omPat
+                        omPat
                             (omVar "row")
-                            [(["{one}", "o", "r"], omVar "r")])
+                            [(["{one}", "o", "r"], omVar "r")]
                     )]))
             (Right (Data "{two}" [Value (Basic.Int 2), Data "{}" []]))
 
@@ -200,9 +198,9 @@ evalRecordsTests = do
                 (omPat
                     (omVar "r")
                     [(["#", "row"],
-                        (omPat
+                        omPat
                             (omVar "row")
-                            [(["{one}", "o", "r"], omVar "r")])
+                            [(["{one}", "o", "r"], omVar "r")]
                     )]))
             (Right (Data "{}" []))
 

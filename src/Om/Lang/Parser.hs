@@ -1,6 +1,5 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
 module Om.Lang.Parser
   ( ParserContext(..)
   , Parser
@@ -129,10 +128,9 @@ exprParser = (`makeExprParser` []) $
 
     parseLet = do
         keyword "let"
-        name <- nameParser <* token "="
-        expr <- exprParser <* keyword "in"
-        body <- exprParser
-        pure (omLet name expr body)
+        omLet <$> nameParser <* token "="
+              <*> exprParser <* keyword "in"
+              <*> exprParser
 
     parseApp = do
         fun <- parseFun
@@ -140,14 +138,12 @@ exprParser = (`makeExprParser` []) $
         pure (omApp (fun:args))
 
     parseFun = try (parens exprParser)
-        <|> omVar <$> ((word (withInitial (char '$')))
+        <|> omVar <$> (word (withInitial (char '$'))
         <|> wordParser)
 
-    parseLam = do
-        name <- nameParser
-        token "=>"
-        body <- exprParser
-        pure (omLam name body)
+    parseLam =
+        omLam <$> nameParser <* token "=>"
+              <*>exprParser 
 
     parsePat = do
         keyword "match"

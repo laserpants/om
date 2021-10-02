@@ -18,12 +18,12 @@ data BasicNatsPrim
     deriving (Show, Eq)
 
 instance PrimType BasicNatsPrim Int where
-    toPrim n               = Int n
+    toPrim                 = Int
     fromPrim (Int n)       = Just n
     fromPrim _             = Nothing
 
 instance PrimType BasicNatsPrim Bool where
-    toPrim b               = Bool b
+    toPrim                 = Bool
     fromPrim (Bool b)      = Just b
     fromPrim _             = Nothing
 

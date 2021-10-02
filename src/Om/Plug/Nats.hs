@@ -39,7 +39,7 @@ natsConHook var
   | otherwise = pure Nothing
 
 natsPatHook :: (PrimType p NatType) => PatHook p (Eval p)
-natsPatHook ((ps, e):_) val = do
+natsPatHook ((ps, e):_) val =
     val >>= \case
         Value p ->
             case (ps, fromPrim p) of
