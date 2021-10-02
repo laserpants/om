@@ -38,6 +38,12 @@ parseRecordPattern = braces $ do
     nxt <- optional (token "|" *> (wildcard <|> nameParser))
     pure ["{" <> key <> "}", pat, fromMaybe "{}" nxt]
 
+parseRecordConPattern :: Parser p [Name]
+parseRecordConPattern = do
+    char '#'
+    pat <- parens (wildcard <|> nameParser)
+    pure ["#", pat]
+
 parseAccessor :: Parser p (Om p)
 parseAccessor = do
     char '.'
@@ -47,7 +53,6 @@ parseAccessor = do
 
 parserContext :: ParserContext p
 parserContext = mempty
-    { contextConstructors = ["#"]
-    , contextExprParser = parseAccessor <|> parseRecord
-    , contextPatternParser = parseRecordPattern
+    { contextExprParser = parseAccessor <|> parseRecord
+    , contextPatternParser = parseRecordConPattern <|> parseRecordPattern
     }

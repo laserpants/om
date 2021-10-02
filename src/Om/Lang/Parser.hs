@@ -32,7 +32,6 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 data ParserContext p = ParserContext
   { contextReserved      :: [Text]
-  , contextConstructors  :: [Text]
   , contextPrimParser    :: Parser p p
   , contextExprParser    :: Parser p (Om p)
   , contextPatternParser :: Parser p [Name]
@@ -41,14 +40,14 @@ data ParserContext p = ParserContext
 type Parser p = ParsecT Void Text (Reader (ParserContext p))
 
 instance Semigroup (ParserContext p) where
-    ParserContext r1 c1 pp1 ep1 ptp1 <> ParserContext r2 c2 pp2 ep2 ptp2 =
-        ParserContext (r1 <> r2) (c1 <> c2) (pp1 <|> pp2) (ep1 <|> ep2) (ptp1 <|> ptp2)
+    ParserContext r1 pp1 ep1 ptp1 <> ParserContext r2 pp2 ep2 ptp2 =
+        ParserContext (r1 <> r2) (pp1 <|> pp2) (ep1 <|> ep2) (ptp1 <|> ptp2)
 
 notImplemented :: Parser p q
 notImplemented = fail "Not implemented"
 
 instance Monoid (ParserContext p) where
-    mempty = ParserContext [] [] notImplemented notImplemented notImplemented
+    mempty = ParserContext [] notImplemented notImplemented notImplemented
 
 runParserStack :: Parser p a -> Text -> ParserContext p -> Either (ParseErrorBundle Text Void) a
 runParserStack parser = runReader . runParserT parser ""
@@ -121,7 +120,6 @@ exprParser = (`makeExprParser` []) $
         <|> parsePat
         <|> try parseLam
         <|> (ask >>= omLit <$$> contextPrimParser)
---        <|> (ask >>= contextExprParser)
         <|> parseVar
 
     parseIf = omIf
@@ -143,7 +141,6 @@ exprParser = (`makeExprParser` []) $
 
     parseFun = try (parens exprParser)
         <|> omVar <$> ((word (withInitial (char '$')))
---        <|> parseExtraConstructor
         <|> wordParser)
 
     parseLam = do
@@ -163,7 +160,7 @@ exprParser = (`makeExprParser` []) $
         ParserContext{ contextPatternParser } <- ask
         token "|"
         names <- try (pure <$> wildcard) <|> contextPatternParser <|> do
-            p <- wordParser <|> parseExtraConstructor
+            p <- wordParser
             ps <- optional args <#> fromMaybe []
             pure (p:ps)
         token "="
@@ -177,11 +174,6 @@ wildcard = token "_" $> wcard
 
 parseVar :: Parser p (Om p)
 parseVar = primFun
-    <|> omVar <$> (parseExtraConstructor <|> wordParser)
+    <|> omVar <$> wordParser
   where
     primFun = char '$' *> (omPrim <$> nameParser)
-
-parseExtraConstructor :: Parser p Text
-parseExtraConstructor = do
-    ParserContext{ contextConstructors } <- ask
-    choice (contextConstructors <#> \tok -> keyword tok *> pure tok)
