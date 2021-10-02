@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Prim.Basic.Parser 
-  ( parserContext
+  ( parser
   ) where
 
 import Data.Functor (($>))
@@ -19,8 +19,8 @@ primParser =
     parseTrue  = keyword "true"  $> Bool True
     parseFalse = keyword "false" $> Bool False
 
-parserContext :: ParserContext BasicPrim
-parserContext = mempty
+parser :: ParserContext BasicPrim
+parser = mempty
     { contextReserved =
         [ "true"
         , "false"

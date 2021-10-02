@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Plug.Records.Parser
-  ( parserContext
+  ( parser
   ) where
 
 import Data.Functor (($>))
@@ -51,8 +51,8 @@ parseAccessor = do
     expr <- parens exprParser
     pure (omApp [omVar ("." <> name), expr])
 
-parserContext :: ParserContext p
-parserContext = mempty
+parser :: ParserContext p
+parser = mempty
     { contextExprParser = parseAccessor <|> parseRecord
     , contextPatternParser = parseRecordConPattern <|> parseRecordPattern
     }

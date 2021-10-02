@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Plug.Constructors.Parser
-  ( parserContext
+  ( parser
   ) where
 
 import Data.Functor (($>))
@@ -22,7 +22,7 @@ parseData = do
     args <- optional (components exprParser)
     pure (omData (cons uppr rest) (fromMaybe [] args))
 
-parserContext :: ParserContext p
-parserContext = mempty
+parser :: ParserContext p
+parser = mempty
     { contextExprParser = parseData
     }

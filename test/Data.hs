@@ -63,7 +63,7 @@ example4 =
         ]
 
 exampleContext1 :: ParserContext BasicPrim
-exampleContext1 = Basic.parserContext <> Records.parserContext <> Constructors.parserContext
+exampleContext1 = Basic.parser <> Records.parser <> Constructors.parser
 
 exampleContext2 :: ParserContext BasicNatsPrim
-exampleContext2 = BasicNats.parserContext <> Records.parserContext
+exampleContext2 = BasicNats.parser <> Records.parser

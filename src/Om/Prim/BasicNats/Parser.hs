@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Prim.BasicNats.Parser 
-  ( parserContext
+  ( parser
   ) where
 
 import Data.Functor (($>))
@@ -39,8 +39,8 @@ parsePattern = parseSucc <|> parseZero
         n <- parens (wildcard <|> nameParser)
         pure ["succ", n]
 
-parserContext :: ParserContext BasicNatsPrim
-parserContext = mempty
+parser :: ParserContext BasicNatsPrim
+parser = mempty
     { contextReserved =
         [ "succ"
         , "zero"

@@ -112,11 +112,11 @@ testRun fun input expect =
 runBasicExpr :: Text -> Either Text (Result BasicPrim)
 runBasicExpr = parseAndRun
     basicPrelude
-    (Constructors.parserContext <> Basic.parserContext <> Records.parserContext)
+    (Constructors.parser <> Basic.parser <> Records.parser)
     recordsPlugin
 
 runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
 runBasicNatsExpr = parseAndRun
     basicNatsPrelude
-    (Constructors.parserContext <> BasicNats.parserContext <> Records.parserContext)
+    (Constructors.parser <> BasicNats.parser <> Records.parser)
     (natsPlugin <> recordsPlugin)

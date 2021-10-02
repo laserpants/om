@@ -201,11 +201,11 @@ parserTests = do
                 ])
 
     describe "Parser (records)" $ do
-        testParse exprParser (Basic.parserContext <> Records.parserContext)
+        testParse exprParser (Basic.parser <> Records.parser)
             "{ foo = 1, baz = 2 }"
             (omData "#" [omData "{foo}" [omLit (Basic.Int 1), omData "{baz}" [omLit (Basic.Int 2), omVar "{}"]]])
 
-        testParse exprParser (Basic.parserContext <> Records.parserContext)
+        testParse exprParser (Basic.parser <> Records.parser)
             "let r = { a = 5 } in match r | { a = a } = a"
             (omLet "r"
                 (omData "#" [omData "{a}" [omLit (Basic.Int 5), omVar "{}"]])
@@ -213,32 +213,32 @@ parserTests = do
                     [ (["{a}", "a", "{}"], omVar "a")
                     ]))
 
-        testParse exprParser (Basic.parserContext <> Records.parserContext)
+        testParse exprParser (Basic.parser <> Records.parser)
             ".two(x)"
             (omApp [omVar ".two", omVar "x"])
 
-        testParse exprParser (Basic.parserContext <> Records.parserContext)
+        testParse exprParser (Basic.parser <> Records.parser)
             ".two({ one = 1, two = 2 })"
             (omApp [omVar ".two", omData "#" [omData "{one}" [omLit (Basic.Int 1), omData "{two}" [omLit (Basic.Int 2), omVar "{}"]]]])
 
     describe "Parser (pattern matching of records)" $ do
-        testParse exprParser (Basic.parserContext <> Records.parserContext)
+        testParse exprParser (Basic.parser <> Records.parser)
             "match xs | { foo = a } = a end"
             (omPat (omVar "xs")
                 [ (["{foo}", "a", "{}"], omVar "a")
                 ])
 
-        testParse exprParser (Basic.parserContext <> Records.parserContext)
+        testParse exprParser (Basic.parser <> Records.parser)
             "match xs | { foo = _ | r } = r end"
             (omPat (omVar "xs")
                 [ (["{foo}", "$_", "r"], omVar "r")
                 ])
 
     describe "Parser (failures)" $ do
-        testParseFail exprParser BasicNats.parserContext
+        testParseFail exprParser BasicNats.parser
             "let true = foo in moo"
 
-        testParseFail exprParser BasicNats.parserContext
+        testParseFail exprParser BasicNats.parser
             "let zero = foo in moo"
 
 testParse :: (Eq a) => Parser p a -> ParserContext p -> Text -> a -> SpecWith ()
