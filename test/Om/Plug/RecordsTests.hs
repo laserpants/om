@@ -23,16 +23,12 @@ evalRecordsTests = do
             --
             -- .two({ one = 1, two = 2 })
             --
-            -- { one = 1, two = 2 }.two
-            --
             (omApp [omVar ".two", example2])
             (Right (Value (Basic.Int 2)))
 
         testEvalBasic "{ one = 1, two = 2 }.one [1]"
             --
             -- .one(two, { one = 1, two = 2 })
-            --
-            -- { one = 1, two = 2 }.one
             --
             (omApp [omVar ".one", example2])
             (Right (Value (Basic.Int 1)))

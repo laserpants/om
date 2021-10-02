@@ -218,6 +218,14 @@ parserTests = do
                     [ (["{a}", "a", "{}"], omVar "a")
                     ]))
 
+        testParse exprParser (Basic.parserContext <> Records.parserContext)
+            ".two(x)"
+            (omApp [omVar ".two", omVar "x"])
+
+        testParse exprParser (Basic.parserContext <> Records.parserContext)
+            ".two({ one = 1, two = 2 })"
+            (omApp [omVar ".two", omData "#" [omData "{one}" [omLit (Basic.Int 1), omData "{two}" [omLit (Basic.Int 2), omVar "{}"]]]])
+
     describe "Parser (pattern matching of records)" $ do
         testParse exprParser (Basic.parserContext <> Records.parserContext)
             "match xs | { foo = a } = a end"

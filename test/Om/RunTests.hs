@@ -83,6 +83,10 @@ runExprTests = do
             "let r = { a = 5, b = 4 } in match r | #(row) = match row | { a = n | _ } = n"
             (Right (Value (BasicNats.Int 5)))
 
+        testRun runBasicNatsExpr
+            ".two({ one = 1, two = 2 })"
+            (Right (Value (BasicNats.Int 2)))
+
 parseAndRun
   :: (PrimType p Bool)
   => PrimEnv p

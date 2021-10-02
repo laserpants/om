@@ -9,6 +9,7 @@ module Om.Lang.Parser
   , keyword
   , lexeme
   , nameParser
+  , parens
   , runParserStack
   , token
   , wildcard

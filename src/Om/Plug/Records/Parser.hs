@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Plug.Records.Parser 
+module Om.Plug.Records.Parser
   ( parserContext
   ) where
 
@@ -10,6 +10,7 @@ import Om.Lang.Parser
 import Om.Prim.BasicNats
 import Om.Util
 import Text.Megaparsec hiding (token)
+import Text.Megaparsec.Char
 import qualified Om.Prim.Basic.Parser as Basic
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
@@ -37,9 +38,16 @@ parseRecordPattern = braces $ do
     nxt <- optional (token "|" *> (wildcard <|> nameParser))
     pure ["{" <> key <> "}", pat, fromMaybe "{}" nxt]
 
+parseAccessor :: Parser p (Om p)
+parseAccessor = do
+    char '.'
+    name <- nameParser
+    expr <- parens exprParser
+    pure (omApp [omVar ("." <> name), expr])
+
 parserContext :: ParserContext p
 parserContext = mempty
     { contextConstructors = ["#"]
-    , contextExprParser = parseRecord
+    , contextExprParser = parseAccessor <|> parseRecord
     , contextPatternParser = parseRecordPattern
     }
