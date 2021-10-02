@@ -13,7 +13,7 @@ import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.Basic.Parser as Basic
 
 evalTests :: SpecWith ()
-evalTests =
+evalTests = do
 
     describe "Eval" $ do
 
@@ -91,6 +91,18 @@ evalTests =
                 , (["Nil"], omLit (Basic.Int 100))
                 ])
             (Right (Value (Basic.Int 2)))
+
+    describe "Eval (failures)" $ do
+
+        testEvalBasic "x"
+            (omVar "x")
+            (Left (UnboundIdentifier "x"))
+
+        testEvalBasic "if 5 then 1 else 2"
+            (omIf (omLit (Basic.Int 5))
+                (omLit (Basic.Int 1))
+                (omLit (Basic.Int 2)))
+            (Left NonTruthyCondition)
 
 testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> SpecWith ()
 testEvalBasic dscr om expect =
