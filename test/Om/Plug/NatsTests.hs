@@ -6,7 +6,6 @@ import Data.Text (Text, unpack, pack)
 import Om.Eval
 import Om.Eval.Strict
 import Om.Lang
-import Om.Plug.Constructors
 import Om.Plug.Nats
 import Om.Plug.Records
 import Om.Prim.Basic
@@ -24,36 +23,29 @@ evalNatsTests = do
     describe "Eval nats" $ do
 
         testEvalBasicNats "succ(succ(zero))"
-            (omApp
-                [ omVar "succ"
-                , omApp
-                    [ omVar "succ"
-                    , omVar "zero"
+            (omData "succ"
+                [ omData "succ"
+                    [ omData "zero" []
                     ]
                 ])
             (Right (Value (BasicNats.Nat 2)))
 
         testEvalBasicNats "zero"
-            (omVar "zero")
+            (omData "zero" [])
             (Right (Value (BasicNats.Nat 0)))
 
         testEvalBasicNats "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n) [Nat 5]"
             (omLet "m"
-                (omApp
-                    [ omVar "succ"
-                    , omApp
-                        [ omVar "succ"
-                        , omVar "zero"
+                (omData "succ"
+                    [ omData "succ"
+                        [ omData "zero" []
                         ]
                     ])
                 (omLet "n"
-                    (omApp
-                        [ omVar "succ"
-                        , omApp
-                            [ omVar "succ"
-                            , omApp
-                                [ omVar "succ"
-                                , omVar "zero"
+                    (omData "succ"
+                        [ omData "succ"
+                            [ omData "succ"
+                                [ omData "zero" []
                                 ]
                             ]
                         ])
@@ -68,13 +60,10 @@ evalNatsTests = do
 
         testEvalBasicNats "match succ(succ(succ(zero))) | succ(n) = n [2]"
             (omPat
-                (omApp
-                    [ omVar "succ"
-                    , omApp
-                        [ omVar "succ"
-                        , omApp
-                            [ omVar "succ"
-                            , omVar "zero"
+                (omData "succ"
+                    [ omData "succ"
+                        [ omData "succ"
+                            [ omData "zero" []
                             ]
                         ]
                     ])
@@ -83,13 +72,10 @@ evalNatsTests = do
 
         testEvalBasicNats "match succ(succ(succ(zero))) | zero = 1 | succ(n) = n [2]"
             (omPat
-                (omApp
-                    [ omVar "succ"
-                    , omApp
-                        [ omVar "succ"
-                        , omApp
-                            [ omVar "succ"
-                            , omVar "zero"
+                (omData "succ"
+                    [ omData "succ"
+                        [ omData "succ"
+                            [ omData "zero" []
                             ]
                         ]
                     ])
@@ -100,7 +86,7 @@ evalNatsTests = do
 
         testEvalBasicNats "match zero | zero = 1 | succ(n) = n [1]"
             (omPat
-                (omVar "zero")
+                (omData "zero" [])
                 [ (["zero"], omLit (BasicNats.Nat 1))
                 , (["succ", "n"], omVar "n")
                 ])
@@ -108,7 +94,7 @@ evalNatsTests = do
 
         testEvalBasicNats "match zero | succ(n) = n | zero = 1 [1]"
             (omPat
-                (omVar "zero")
+                (omData "zero" [])
                 [ (["succ", "n"], omVar "n")
                 , (["zero"], omLit (BasicNats.Nat 1))
                 ])
@@ -116,13 +102,10 @@ evalNatsTests = do
 
         testEvalBasicNats "match succ(succ(succ(zero))) | succ(n) = n | zero = 1 [2]"
             (omPat
-                (omApp
-                    [ omVar "succ"
-                    , omApp
-                        [ omVar "succ"
-                        , omApp
-                            [ omVar "succ"
-                            , omVar "zero"
+                (omData "succ"
+                    [ omData "succ"
+                        [ omData "succ"
+                            [ omData "zero" []
                             ]
                         ]
                     ])
@@ -135,4 +118,4 @@ testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (Result BasicNatsP
 testEvalBasicNats dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicNatsPrelude (natsPlugin <> constructorsPlugin <> recordsPlugin)
+    result = evalExpr om basicNatsPrelude (natsPlugin <> recordsPlugin)

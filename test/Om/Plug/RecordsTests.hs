@@ -6,7 +6,6 @@ import Data.Text (Text, unpack, pack)
 import Om.Eval
 import Om.Eval.Strict
 import Om.Lang
-import Om.Plug.Constructors
 import Om.Plug.Records
 import Om.Prim.Basic
 import Test.Hspec
@@ -211,4 +210,4 @@ testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> Spec
 testEvalBasic dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicPrelude (constructorsPlugin <> recordsPlugin)
+    result = evalExpr om basicPrelude recordsPlugin

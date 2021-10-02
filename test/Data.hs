@@ -5,6 +5,7 @@ import Om.Lang
 import Om.Lang.Parser
 import Om.Prim.Basic
 import Om.Prim.BasicNats
+import qualified Om.Plug.Constructors.Parser as Constructors
 import qualified Om.Plug.Records.Parser as Records
 import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.Basic.Parser as Basic
@@ -25,8 +26,6 @@ example1 =
             ]
         ]
 
--- #({one}(1, {two}(2, {})))
---
 -- { one = 1, two = 2 }
 example2 :: Om BasicPrim
 example2 =
@@ -40,8 +39,6 @@ example2 =
             ]
         ]
 
--- #({two}(2, {one}(1, {})))
---
 -- { two = 2, one = 1 }
 example3 :: Om BasicPrim
 example3 =
@@ -55,8 +52,6 @@ example3 =
             ]
         ]
 
--- #({one}(1, {}))
---
 -- { one = 1 }
 example4 :: Om BasicPrim
 example4 =
@@ -68,7 +63,7 @@ example4 =
         ]
 
 exampleContext1 :: ParserContext BasicPrim
-exampleContext1 = Basic.parserContext <> Records.parserContext
+exampleContext1 = Basic.parserContext <> Records.parserContext <> Constructors.parserContext
 
 exampleContext2 :: ParserContext BasicNatsPrim
 exampleContext2 = BasicNats.parserContext <> Records.parserContext

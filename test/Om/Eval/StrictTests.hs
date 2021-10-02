@@ -6,7 +6,6 @@ import Data.Text (Text, unpack, pack)
 import Om.Eval
 import Om.Eval.Strict
 import Om.Lang
-import Om.Plug.Constructors
 import Om.Prim.Basic
 import Test.Hspec
 import qualified Om.Prim.Basic as Basic
@@ -55,7 +54,7 @@ evalTests = do
             (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
         testEvalBasic "Cons(1, Cons(2, (Cons 3, Nil)))"
-            (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omVar "Nil"]]])
+            (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omData "Nil" []]]])
             (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
         testEvalBasic "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(n, _) = n [1]"
@@ -72,7 +71,7 @@ evalTests = do
             --   | Cons(n, _) = n
             --   | Nil = 100
             --
-            (omPat (omVar "Nil") [ (["Cons", "n", wcard], omVar "n") , (["Nil"], omLit (Basic.Int 100)) ])
+            (omPat (omData "Nil" []) [ (["Cons", "n", wcard], omVar "n") , (["Nil"], omLit (Basic.Int 100)) ])
             (Right (Value (Basic.Int 100)))
 
         testEvalBasic "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [2]"
@@ -108,4 +107,4 @@ testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> Spec
 testEvalBasic dscr om expect =
     it (unpack dscr) (expect == result)
   where
-    result = evalExpr om basicPrelude constructorsPlugin
+    result = evalExpr om basicPrelude mempty

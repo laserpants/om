@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Eval.Strict 
+module Om.Eval.Strict
   ( Result
   , PrimEnv
   , evalExpr
@@ -22,25 +22,38 @@ type Result p = Value p (Eval p)
 
 type PrimEnv p = [(Name, Eval p (Result p))]
 
-evalExpr :: (PrimType p Bool) => Om p -> PrimEnv p -> Plugin p (Eval p) -> Either Error (Result p)
-evalExpr om prim plug = runEval (eval om) (foldr (uncurry Map.insert) mempty env, lookupHooks plug, patternHooks plug)
+evalExpr
+  :: (PrimType p Bool)
+  => Om p
+  -> PrimEnv p
+  -> Plugin p (Eval p)
+  -> Either Error (Result p)
+evalExpr om prim plug =
+    runEval (eval om) context
   where
+    context = EvalContext
+        { evalEnv = foldr (uncurry Map.insert) mempty env
+        , varHook = pluginVarHook plug
+        , conHook = pluginConHook plug
+        , patHook = pluginPatHook plug
+        }
     env = prim <#> first ("$" <>)
 
 eval
-  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
+  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalContext p m) m)
   => Om p
   -> m (Value p m)
 eval = cata $ \case
 
     Var var    -> evalVar var
+    Con con    -> evalCon con
     App exs    -> foldl1 evalApp exs
     Lit lit    -> pure (Value lit)
-    Lam var e1 -> asks (Closure var e1 . fst3)
+    Lam var e1 -> asks (Closure var e1 . evalEnv)
 
     Let var e1 e2 -> do
         e <- e1
-        (local . first3) (Map.insert var (pure e)) e2
+        (local . onEvalEnv) (Map.insert var (pure e)) e2
 
     If e1 e2 e3 -> do
         e <- e1
@@ -59,7 +72,7 @@ toBool (Value v) = fromPrim v
 toBool _         = Nothing
 
 evalApp
-  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
+  :: (MonadError Error m, MonadReader (EvalContext p m) m)
   => m (Value p m)
   -> m (Value p m)
   -> m (Value p m)
@@ -69,7 +82,7 @@ evalApp fx arg = do
     case fun of
 
         Closure var body closure ->
-            (local . first3) (Map.insert var (pure val) . (closure <>)) body
+            (local . onEvalEnv) (Map.insert var (pure val) . (closure <>)) body
 
         PrimFun fun args ->
             evalPrim fun (val:args)
@@ -78,7 +91,7 @@ evalApp fx arg = do
             pure (Data con (args <> [val]))
 
 evalPrim
-  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
+  :: (MonadError Error m, MonadReader (EvalContext p m) m)
   => Fun p
   -> [Value p m]
   -> m (Value p m)
@@ -97,24 +110,36 @@ evalPrim fun args
     literal _           = throwError RuntimeError
 
 evalVar
-  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
+  :: (MonadError Error m, MonadReader (EvalContext p m) m)
   => Name
   -> m (Value p m)
 evalVar var = do
     -- Run hooks
-    hook <- ask <#> snd3
+    hook <- ask <#> varHook
     res <- hook var
     case res of
         Just v1 -> pure v1
         -- If hooks return Nothing, do regular lookup
         Nothing -> do
-            val <- asks (Map.lookup var . fst3)
+            val <- asks (Map.lookup var . evalEnv)
             case val of
                 Just val -> val
                 Nothing  -> throwError (UnboundIdentifier (stripPrefix "$" var))
 
+evalCon
+  :: (MonadError Error m, MonadReader (EvalContext p m) m)
+  => Name
+  -> m (Value p m)
+evalCon con = do
+    hook <- ask <#> conHook
+    res <- hook con
+    case res of
+        Just v1 -> pure v1
+        Nothing -> do
+            pure (Data con [])
+
 evalPat
-  :: (MonadError Error m, MonadReader (EvalEnv p m, LookupHook p m, PatternHook p m) m)
+  :: (MonadError Error m, MonadReader (EvalContext p m) m)
   => m (Value p m)
   -> [(Names, m (Value p m))]
   -> m (Value p m)
@@ -125,7 +150,7 @@ evalPat val = \case
 
     pats@((p:ps, e):eqs) -> do
         -- Run hooks
-        hook <- ask <#> thd3
+        hook <- ask <#> patHook
         res <- hook pats val
         case res of
             Just v1 -> pure v1
@@ -133,7 +158,7 @@ evalPat val = \case
             Nothing -> val >>= \case
 
                 Data con args | p == con ->
-                    (local . first3) (insertMany (zip ps (pure <$> args))) e
+                    (local . onEvalEnv) (insertMany (zip ps (pure <$> args))) e
 
                 _ ->
                     evalPat val eqs

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Om.Lang.ParserTests 
+module Om.Lang.ParserTests
   ( parserTests
   ) where
 
@@ -12,6 +12,7 @@ import Om.Prim.Basic
 import Om.Prim.BasicNats
 import Test.Hspec
 import qualified Om.Plug.Records.Parser as Records
+import qualified Om.Plug.Constructors.Parser as Constructors
 import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.Basic.Parser as Basic
 import qualified Om.Prim.BasicNats as BasicNats
@@ -27,7 +28,7 @@ parserTests = do
 
         testParse exprParser exampleContext1
             "Cons(x, xs)"
-            (omApp [omVar "Cons", omVar "x", omVar "xs"] :: Om BasicPrim)
+            (omData "Cons" [omVar "x", omVar "xs"] :: Om BasicPrim)
 
         testParse exprParser exampleContext1
             "fun(x)"
@@ -99,11 +100,11 @@ parserTests = do
 
         testParse exprParser exampleContext1
             "match Cons(x, y) | Cons(x, _) = x | Nil = y"
-            (omPat (omApp [omVar "Cons", omVar "x", omVar "y"]) [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+            (omPat (omData "Cons" [omVar "x", omVar "y"]) [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
         testParse exprParser exampleContext1
             "match Nil | Cons(x, _) = x | Nil = y"
-            (omPat (omVar "Nil") [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
+            (omPat (omData "Nil" []) [(["Cons", "x", "$_"], omVar "x"), (["Nil"], omVar "y")] :: Om BasicPrim)
 
         testParse exprParser exampleContext1
             "let x = y => y in x(y)"
@@ -115,11 +116,11 @@ parserTests = do
 
         testParse exprParser exampleContext1
             "Nil"
-            (omVar "Nil" :: Om BasicPrim)
+            (omData "Nil" [] :: Om BasicPrim)
 
         testParse exprParser exampleContext1
             "(Nil)"
-            (omVar "Nil" :: Om BasicPrim)
+            (omData "Nil" [] :: Om BasicPrim)
 
         testParse exprParser exampleContext1
             "1"
@@ -131,7 +132,7 @@ parserTests = do
 
         testParse exprParser exampleContext1
             "Cons(1, Cons(2, Cons (3, Nil)))"
-            (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omVar "Nil"]]])
+            (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omData "Nil" []]]])
 
         testParse exprParser exampleContext1
             "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
@@ -154,7 +155,7 @@ parserTests = do
                             ])))
                     (omApp [omVar "fact", omLit (Basic.Int 8)]))
 
-        testParse exprParser Basic.parserContext
+        testParse exprParser exampleContext1
             "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
             (omPat
                 (omData "Cons"
@@ -163,7 +164,7 @@ parserTests = do
                         [ omLit (Basic.Int 2)
                         , omData "Cons"
                             [ omLit (Basic.Int 3)
-                            , omVar "Nil"]]])
+                            , omData "Nil" []]]])
                                 [ (["Cons", wcard, "xs"],
                                     (omPat (omVar "xs")
                                         [ (["Cons", "n", wcard], omVar "n")
@@ -175,22 +176,16 @@ parserTests = do
         testParse exprParser exampleContext2
             "let m = succ(succ(zero)) in let n = succ(succ(succ(zero))) in $add(m, n)"
             (omLet "m"
-                (omApp
-                    [ omVar "succ"
-                    , omApp
-                        [ omVar "succ"
-                        , omVar "zero"
+                (omData "succ"
+                    [ omData "succ"
+                        [ omData "zero" []
                         ]
                     ])
                 (omLet "n"
-                    (omApp
-                        [ omVar "succ"
-                        , omApp
-                            [ omVar "succ"
-                            , omApp
-                                [ omVar "succ"
-                                , omVar "zero"
-                                ]
+                    (omData "succ"
+                        [ omData "succ"
+                            [ omData "succ"
+                                [ omData "zero" [] ]
                             ]
                         ])
                     (omApp
@@ -212,9 +207,9 @@ parserTests = do
 
         testParse exprParser (Basic.parserContext <> Records.parserContext)
             "let r = { a = 5 } in match r | { a = a } = a"
-            (omLet "r" 
+            (omLet "r"
                 (omData "#" [omData "{a}" [omLit (Basic.Int 5), omVar "{}"]])
-                (omPat (omVar "r") 
+                (omPat (omVar "r")
                     [ (["{a}", "a", "{}"], omVar "a")
                     ]))
 

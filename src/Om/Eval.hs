@@ -1,13 +1,17 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE StrictData                 #-}
 module Om.Eval
   ( Value(..)
   , EvalEnv
   , Error(..)
-  , LookupHook
-  , PatternHook
+  , EvalContext(..)
+  , VarHook
+  , ConHook
+  , PatHook
   , Eval
   , toString
   , runEval
@@ -17,6 +21,7 @@ module Om.Eval
   , primFun4
   , primFun5
   , primValue
+  , onEvalEnv
   ) where
 
 import Control.Monad.Except
@@ -59,19 +64,29 @@ data Error
     | RuntimeError
     deriving (Show, Eq)
 
-type LookupHook p m = Name -> m (Maybe (Value p m))
+type VarHook p m = Name -> m (Maybe (Value p m))
+type ConHook p m = Name -> m (Maybe (Value p m))
+type PatHook p m = [(Names, m (Value p m))] -> m (Value p m) -> m (Maybe (Value p m))
 
-type PatternHook p m = [(Names, m (Value p m))] -> m (Value p m) -> m (Maybe (Value p m))
+data EvalContext p m = EvalContext
+    { evalEnv :: EvalEnv p m
+    , varHook :: VarHook p m
+    , conHook :: ConHook p m
+    , patHook :: PatHook p m
+    }
 
-newtype Eval p a = Eval { unEval :: ReaderT (EvalEnv p (Eval p), LookupHook p (Eval p), PatternHook p (Eval p)) (Either Error) a }
+newtype Eval p a = Eval { unEval :: ReaderT (EvalContext p (Eval p)) (Either Error) a }
     deriving
       ( Functor
       , Applicative
       , Monad
       , MonadError Error
-      , MonadReader (EvalEnv p (Eval p), LookupHook p (Eval p), PatternHook p (Eval p)) )
+      , MonadReader (EvalContext p (Eval p)) )
 
-runEval :: Eval p a -> (EvalEnv p (Eval p), LookupHook p (Eval p), PatternHook p (Eval p)) -> Either Error a
+onEvalEnv :: (EvalEnv p m -> EvalEnv p m) -> EvalContext p m -> EvalContext p m
+onEvalEnv f EvalContext{ evalEnv, .. } = EvalContext{ evalEnv = f evalEnv, .. }
+
+runEval :: Eval p a -> EvalContext p (Eval p) -> Either Error a
 runEval = runReaderT . unEval
 
 primFun1 :: (Monad m) => (PrimType p a, PrimType p b) => (a -> b) -> m (Value p m)

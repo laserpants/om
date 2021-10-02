@@ -1,45 +1,58 @@
 module Om.Plug
   ( Plugin
   , plugin
-  , lookupHooks
-  , patternHooks
+  , pluginVarHook
+  , pluginConHook
+  , pluginPatHook
   ) where
 
 import Om.Eval
 import Om.Util
 
-newtype LookupHookPlug p m  = LookupHookPlug (LookupHook p m)
-newtype PatternHookPlug p m = PatternHookPlug (PatternHook p m)
+newtype VarHookPlug p m = VarHookPlug (VarHook p m)
+newtype ConHookPlug p m = ConHookPlug (ConHook p m)
+newtype PatHookPlug p m = PatHookPlug (PatHook p m)
 
-instance (Monad m) => Semigroup (LookupHookPlug p m) where
-    LookupHookPlug p <> LookupHookPlug q = LookupHookPlug r
+instance (Monad m) => Semigroup (VarHookPlug p m) where
+    VarHookPlug p <> VarHookPlug q = VarHookPlug r
       where
         r name = p name >>= maybe (q name) (pure . Just)
 
-instance (Monad m) => Monoid (LookupHookPlug p m) where
-    mempty = LookupHookPlug (\_ -> pure Nothing)
+instance (Monad m) => Monoid (VarHookPlug p m) where
+    mempty = VarHookPlug (\_ -> pure Nothing)
 
-instance (Monad m) => Semigroup (PatternHookPlug p m) where
-    PatternHookPlug p <> PatternHookPlug q = PatternHookPlug r
+instance (Monad m) => Semigroup (ConHookPlug p m) where
+    ConHookPlug p <> ConHookPlug q = ConHookPlug r
+      where
+        r name = p name >>= maybe (q name) (pure . Just)
+
+instance (Monad m) => Monoid (ConHookPlug p m) where
+    mempty = ConHookPlug (\_ -> pure Nothing)
+
+instance (Monad m) => Semigroup (PatHookPlug p m) where
+    PatHookPlug p <> PatHookPlug q = PatHookPlug r
       where
         r pats val = p pats val >>= maybe (q pats val) (pure . Just)
 
-instance (Monad m) => Monoid (PatternHookPlug p m) where
-    mempty = PatternHookPlug (\_ _ -> pure Nothing)
+instance (Monad m) => Monoid (PatHookPlug p m) where
+    mempty = PatHookPlug (\_ _ -> pure Nothing)
 
-data Plugin p m = Plugin (LookupHookPlug p m) (PatternHookPlug p m)
+data Plugin p m = Plugin (VarHookPlug p m) (ConHookPlug p m) (PatHookPlug p m)
 
-lookupHooks :: Plugin p m -> LookupHook p m
-lookupHooks (Plugin (LookupHookPlug p) _) = p
+pluginVarHook :: Plugin p m -> VarHook p m
+pluginVarHook (Plugin (VarHookPlug hook) _ _) = hook
 
-patternHooks :: Plugin p m -> PatternHook p m
-patternHooks (Plugin _ (PatternHookPlug p)) = p
+pluginConHook :: Plugin p m -> ConHook p m
+pluginConHook (Plugin _ (ConHookPlug hook) _) = hook
+
+pluginPatHook :: Plugin p m -> PatHook p m
+pluginPatHook (Plugin _ _ (PatHookPlug hook)) = hook
 
 instance (Monad m) => Semigroup (Plugin p m) where
-    Plugin p1 p2 <> Plugin q1 q2 = Plugin (p1 <> q1) (p2 <> q2)
+    Plugin p1 p2 p3 <> Plugin q1 q2 q3 = Plugin (p1 <> q1) (p2 <> q2) (p3 <> q3)
 
 instance (Monad m) => Monoid (Plugin p m) where
-    mempty = Plugin mempty mempty
+    mempty = Plugin mempty mempty mempty
 
-plugin :: (Monad m) => Maybe (LookupHook p m) -> Maybe (PatternHook p m) -> Plugin p m
-plugin a b = Plugin (maybe mempty LookupHookPlug a) (maybe mempty PatternHookPlug b)
+plugin :: (Monad m) => Maybe (VarHook p m) -> Maybe (ConHook p m) -> Maybe (PatHook p m) -> Plugin p m
+plugin vh ch ph = Plugin (maybe mempty VarHookPlug vh) (maybe mempty ConHookPlug ch) (maybe mempty PatHookPlug ph)

@@ -9,13 +9,13 @@ import Om.Eval.Strict
 import Om.Lang
 import Om.Lang.Parser
 import Om.Plug
-import Om.Plug.Constructors
 import Om.Plug.Nats
 import Om.Plug.Records
 import Om.Prim
 import Om.Prim.Basic
 import Om.Prim.BasicNats
 import Test.Hspec
+import qualified Om.Plug.Constructors.Parser as Constructors
 import qualified Om.Plug.Records.Parser as Records
 import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.Basic.Parser as Basic
@@ -28,18 +28,22 @@ runExprTests = do
     describe "Run expression" $ do
 
         testRun runBasicExpr
-            "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8) [40320]"
+            "let fact = n => if $eq(n, 0) then 1 else $mul(n, fact($sub(n, 1))) in fact(8)"
             (Right (Value (Basic.Int 40320)))
 
         testRun runBasicExpr
-            "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [2]"
+            "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
             (Right (Value (Basic.Int 2)))
 
         testRun runBasicExpr
-            "match Nil | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [100]"
+            "match Nil | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100"
             (Right (Value (Basic.Int 100)))
 
     describe "Run expression (nats)" $ do
+
+        testRun runBasicNatsExpr
+            "zero"
+            (Right (Value (BasicNats.Nat 0)))
 
         testRun runBasicNatsExpr
             "true"
@@ -108,11 +112,11 @@ testRun fun input expect =
 runBasicExpr :: Text -> Either Text (Result BasicPrim)
 runBasicExpr = parseAndRun
     basicPrelude
-    (Basic.parserContext <> Records.parserContext)
-    (constructorsPlugin <> recordsPlugin)
+    (Constructors.parserContext <> Basic.parserContext <> Records.parserContext)
+    recordsPlugin
 
 runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
 runBasicNatsExpr = parseAndRun
     basicNatsPrelude
-    (BasicNats.parserContext <> Records.parserContext)
-    (constructorsPlugin <> recordsPlugin <> natsPlugin)
+    (Constructors.parserContext <> BasicNats.parserContext <> Records.parserContext)
+    (natsPlugin <> recordsPlugin)

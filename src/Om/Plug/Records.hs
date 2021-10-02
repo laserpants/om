@@ -10,7 +10,6 @@ import Data.Foldable
 import Data.Map.Strict (Map)
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import Data.Tuple.Extra (first, fst3, snd3, thd3, first3, second3, third3)
 import Om.Eval
 import Om.Plug
 import Om.Util
@@ -18,14 +17,14 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 
 recordsPlugin :: Plugin p (Eval p)
-recordsPlugin = plugin (Just recordsLookupHook) (Just recordsPatternHook)
+recordsPlugin = plugin (Just recordsVarHook) Nothing (Just recordsPatHook)
 
-recordsLookupHook :: LookupHook p (Eval p)
-recordsLookupHook var
+recordsVarHook :: VarHook p (Eval p)
+recordsVarHook var
   | '.' == Text.head var = do
       let closr body = pure (Closure "?0" body mempty)
       Just <$$> closr $ do
-          env <- ask <#> fst3
+          env <- ask <#> evalEnv
           fromJust (Map.lookup "?0" env) >>= \case
 
               Data "#" fields ->
@@ -43,17 +42,17 @@ getField name [Data f (v:fs)]
   | f == ("{" <> name <> "}") = pure v
   | otherwise                 = getField name fs
 
-recordsPatternHook :: PatternHook p (Eval p)
-recordsPatternHook (([p, q, r], e):_) val
+recordsPatHook :: PatHook p (Eval p)
+recordsPatHook (([p, q, r], e):_) val
   | isRowCon p = do
         fun <- do
             row <- toMap val mempty
             case Map.lookup p row of
                 Nothing    -> throwError RuntimeError
                 Just (v:_) -> pure (insertMany [(q, v), (r, fromMap (Map.delete p row))])
-        Just <$> local (first3 fun) e
+        Just <$> local (onEvalEnv fun) e
 
-recordsPatternHook _ _ = pure Nothing
+recordsPatHook _ _ = pure Nothing
 
 isRowCon :: Name -> Bool
 isRowCon ""  = False

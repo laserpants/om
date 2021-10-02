@@ -5,6 +5,7 @@ module Om.Lang.Parser
   ( ParserContext(..)
   , Parser
   , commaSep
+  , components
   , exprParser
   , keyword
   , lexeme
@@ -13,6 +14,7 @@ module Om.Lang.Parser
   , runParserStack
   , token
   , wildcard
+  , wordParser
   ) where
 
 import Control.Monad.Combinators.Expr
@@ -109,7 +111,8 @@ wordParser = word (pack <$> some validChar)
 
 exprParser :: Parser p (Om p)
 exprParser = (`makeExprParser` []) $
-    try parseApp
+    (ask >>= contextExprParser)
+        <|> try parseApp
         <|> parens exprParser
         <|> parser
   where
@@ -118,7 +121,7 @@ exprParser = (`makeExprParser` []) $
         <|> parsePat
         <|> try parseLam
         <|> (ask >>= omLit <$$> contextPrimParser)
-        <|> (ask >>= contextExprParser)
+--        <|> (ask >>= contextExprParser)
         <|> parseVar
 
     parseIf = omIf
@@ -140,7 +143,7 @@ exprParser = (`makeExprParser` []) $
 
     parseFun = try (parens exprParser)
         <|> omVar <$> ((word (withInitial (char '$')))
-        <|> parseExtraConstructor
+--        <|> parseExtraConstructor
         <|> wordParser)
 
     parseLam = do

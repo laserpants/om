@@ -8,6 +8,7 @@ module Om.Lang
   ( Om
   , OmF(..)
   , omVar
+  , omCon
   , omPrim
   , omLit
   , omApp
@@ -28,6 +29,7 @@ import Text.Show.Deriving (deriveShow1)
 
 data OmF p a
     = Var Name
+    | Con Name
     | Lit p
     | App [a]
     | Let Name a a
@@ -40,6 +42,10 @@ type Om p = Fix (OmF p)
 omVar :: Name -> Om p
 omVar = embed1 Var
 {-# INLINE omVar #-}
+
+omCon :: Name -> Om p
+omCon = embed1 Con
+{-# INLINE omCon #-}
 
 omPrim :: Name -> Om p
 omPrim = omVar . ("$" <>)
@@ -74,7 +80,8 @@ wcard = "$_"
 {-# INLINE wcard #-}
 
 omData :: Name -> [Om p] -> Om p
-omData con args = omApp (omVar con:args)
+omData con []   = omCon con
+omData con args = omApp (omCon con:args)
 
 deriving instance (Show p, Show a) => Show (OmF p a)
 deriving instance (Eq   p, Eq   a) => Eq   (OmF p a)

@@ -4,8 +4,10 @@ module Om.Prim.BasicNats.Parser
   ) where
 
 import Data.Functor (($>))
+import Om.Lang
 import Om.Lang.Parser
 import Om.Prim.BasicNats
+import Om.Util
 import Text.Megaparsec hiding (token)
 import qualified Om.Prim.Basic.Parser as Basic
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -20,6 +22,23 @@ primParser =
     parseTrue  = keyword "true"  $> Bool True
     parseFalse = keyword "false" $> Bool False
 
+parseConstructors :: Parser p (Om p)
+parseConstructors = parseSucc <|> parseZero
+  where
+    parseZero = omCon <$> "zero" 
+    parseSucc = do
+        keyword "succ" 
+        omData "succ" . pure <$> parens exprParser
+
+parsePattern :: Parser p [Name]
+parsePattern = parseSucc <|> parseZero
+  where
+    parseZero = pure <$> "zero"
+    parseSucc = do
+        keyword "succ" 
+        n <- parens (wildcard <|> nameParser)
+        pure ["succ", n]
+
 parserContext :: ParserContext BasicNatsPrim
 parserContext = mempty
     { contextReserved =
@@ -28,9 +47,7 @@ parserContext = mempty
         , "true"
         , "false"
         ]
-    , contextConstructors = 
-        [ "succ"
-        , "zero"
-        ]
     , contextPrimParser = primParser
+    , contextExprParser = parseConstructors
+    , contextPatternParser = parsePattern
     }
