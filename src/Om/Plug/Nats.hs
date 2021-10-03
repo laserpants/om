@@ -46,7 +46,7 @@ natsPatHook ((ps, e):_) val =
 
                 (["succ", m], Just (FromInteger n)) | n > 0 -> do
                     let fun = Map.insert m (pure (Value (toPrim (FromInteger (n - 1)))))
-                    Just <$> local (onEvalEnv fun) e
+                    Just <$> local (applyEvalEnv fun) e
 
                 (["zero"], Just (FromInteger n)) | 0 == n -> Just <$> e
 

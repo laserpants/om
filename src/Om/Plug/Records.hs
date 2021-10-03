@@ -50,7 +50,7 @@ recordsPatHook (([p, q, r], e):_) val
             case Map.lookup p row of
                 Nothing    -> throwError RuntimeError
                 Just (v:_) -> pure (insertMany [(q, v), (r, fromMap (Map.delete p row))])
-        Just <$> local (onEvalEnv fun) e
+        Just <$> local (applyEvalEnv fun) e
 
 recordsPatHook _ _ = pure Nothing
 

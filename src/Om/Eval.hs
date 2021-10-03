@@ -23,7 +23,7 @@ module Om.Eval
   , primFun4
   , primFun5
   , primValue
-  , onEvalEnv
+  , applyEvalEnv
   ) where
 
 import Control.Monad.Except
@@ -95,8 +95,8 @@ runEvalT e = runExceptT . runReaderT (unEvalT e)
 runEval :: Eval p a -> EvalContext p (Eval p) -> Either Error a
 runEval e = runIdentity . runEvalT e
 
-onEvalEnv :: (EvalEnv p m -> EvalEnv p m) -> EvalContext p m -> EvalContext p m
-onEvalEnv f EvalContext{ evalEnv, .. } = EvalContext{ evalEnv = f evalEnv, .. }
+applyEvalEnv :: (EvalEnv p m -> EvalEnv p m) -> EvalContext p m -> EvalContext p m
+applyEvalEnv f EvalContext{ evalEnv, .. } = EvalContext{ evalEnv = f evalEnv, .. }
 
 primFun1 :: (Monad m) => (PrimType p a, PrimType p b) => (a -> b) -> m (Value p m)
 primFun1 f = pure $ PrimFun (fun1 f) []

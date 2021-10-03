@@ -68,7 +68,7 @@ eval = cata $ \case
 
     Let var e1 e2 -> do
         e <- e1
-        (local . onEvalEnv) (Map.insert var (pure e)) e2
+        (local . applyEvalEnv) (Map.insert var (pure e)) e2
 
     If e1 e2 e3 -> do
         e <- e1
@@ -97,7 +97,7 @@ evalApp fx arg = do
     case fun of
 
         Closure var body closure ->
-            (local . onEvalEnv) (Map.insert var (pure val) . (closure <>)) body
+            (local . applyEvalEnv) (Map.insert var (pure val) . (closure <>)) body
 
         PrimFun fun args ->
             evalPrim fun (val:args)
@@ -170,7 +170,7 @@ evalPat val = \case
             Nothing -> val >>= \case
 
                 Data con args | p == con ->
-                    (local . onEvalEnv) (insertMany (zip ps (pure <$> args))) e
+                    (local . applyEvalEnv) (insertMany (zip ps (pure <$> args))) e
 
                 _ ->
                     evalPat val eqs
