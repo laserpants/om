@@ -18,6 +18,7 @@ import Om.Prim
 import Om.Util
 import System.IO.Unsafe
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 
 data FunPrim
     = Unit
@@ -31,6 +32,11 @@ data FunPrim
 instance PrimType FunPrim Int where
     toPrim              = Int
     fromPrim (Int n)    = Just n
+    fromPrim _          = Nothing
+
+instance PrimType FunPrim Double where
+    toPrim              = Float
+    fromPrim (Float n)  = Just n
     fromPrim _          = Nothing
 
 instance PrimType FunPrim Bool where
@@ -48,20 +54,22 @@ instance PrimType FunPrim Text where
     fromPrim (String t) = Just t
     fromPrim _          = Nothing
 
-instance (PrimType FunPrim a) => PrimType FunPrim (IO a) where
-    toPrim              = toPrim . unsafePerformIO
-    fromPrim            = fmap pure . fromPrim
+instance PrimType FunPrim Char where
+    toPrim              = Char
+    fromPrim (Char c)   = Just c
+    fromPrim _          = Nothing
 
 funPrelude :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => [(Name, m (Value FunPrim m))]
 funPrelude =
-    [ ("eq"     , primFun2 ((==) :: Int -> Int -> Bool))
-    , ("add"    , primFun2 ((+) :: Int -> Int -> Int))
-    , ("sub"    , primFun2 ((-) :: Int -> Int -> Int))
-    , ("mul"    , primFun2 ((*) :: Int -> Int -> Int))
-    , ("div"    , primFun2 (div :: Int -> Int -> Int))
-    , ("concat" , primFun2 ((<>) :: Text -> Text -> Text))
-    , ("print"  , ioPutStrLn)
-    , ("read"   , ioGetLine)
+    [ ("eq"      , primFun2 ((==) :: Int -> Int -> Bool))
+    , ("add"     , primFun2 ((+) :: Int -> Int -> Int))
+    , ("sub"     , primFun2 ((-) :: Int -> Int -> Int))
+    , ("mul"     , primFun2 ((*) :: Int -> Int -> Int))
+    , ("div"     , primFun2 (div :: Int -> Int -> Int))
+    , ("concat"  , primFun2 ((<>) :: Text -> Text -> Text))
+    , ("strcons" , primFun2 (Text.cons :: Char -> Text -> Text))
+    , ("print"   , ioPutStrLn)
+    , ("read"    , ioGetLine)
     ]
 
 ioPutStrLn :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
