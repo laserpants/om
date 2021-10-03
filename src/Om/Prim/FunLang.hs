@@ -59,13 +59,23 @@ funPrelude =
     , ("sub"   , primFun2 ((-) :: Int -> Int -> Int ))
     , ("mul"   , primFun2 ((*) :: Int -> Int -> Int ))
     , ("div"   , primFun2 (div :: Int -> Int -> Int ))
-    , ("print" , prints
-      )
+    , ("print" , print_)
+    , ("read"  , read_)
     ]
 
-prints :: (MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
-prints = pure $ flip (Closure "?0") mempty $ do
+print_ :: (MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
+print_ = pure $ flip (Closure "?0") mempty $ do
     env <- ask <#> evalEnv
     fromJust (Map.lookup "?0" env) >>= \case
         Value (String str) ->
             seq (unsafePerformIO (putStrLn (unpack str))) $ pure (Value Unit)
+
+read_ :: (MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
+read_ = pure $ flip (Closure "?0") mempty $ do
+    let str = unsafePerformIO getLine 
+    pure (Value (String (pack str)))
+    --env <- ask <#> evalEnv
+    --fromJust (Map.lookup "?0" env) >>= \case
+    --    Value (String str) ->
+    --        seq (unsafePerformIO (putStrLn (unpack str))) $ pure (Value Unit)
+
