@@ -52,7 +52,7 @@ instance (PrimType FunPrim a) => PrimType FunPrim (IO a) where
     toPrim              = toPrim . unsafePerformIO
     fromPrim            = fmap pure . fromPrim
 
-funPrelude :: (MonadReader (EvalContext FunPrim m) m) => [(Name, m (Value FunPrim m))]
+funPrelude :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => [(Name, m (Value FunPrim m))]
 funPrelude =
     [ ("eq"    , primFun2 ((==) :: Int -> Int -> Bool))
     , ("add"   , primFun2 ((+) :: Int -> Int -> Int ))
@@ -63,21 +63,15 @@ funPrelude =
     , ("read"  , ioGetLine)
     ]
 
-ioPutStrLn :: (MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
+ioPutStrLn :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
 ioPutStrLn = pure $ flip (Closure "?0") mempty $ do
     env <- ask <#> evalEnv
     fromJust (Map.lookup "?0" env) >>= \case
         Value (String str) -> do
-            --seq (unsafePerformIO (putStrLn (unpack str))) $ pure (Value Unit)
-            --seq (unsafePerformIO (putStrLn (unpack str))) 
+            liftIO (putStrLn (unpack str))
             pure (Value Unit)
 
-ioGetLine :: (MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
+ioGetLine :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
 ioGetLine = pure $ flip (Closure "?0") mempty $ do
-    let str = unsafePerformIO getLine 
+    str <- liftIO getLine
     pure (Value (String (pack str)))
-    --env <- ask <#> evalEnv
-    --fromJust (Map.lookup "?0" env) >>= \case
-    --    Value (String str) ->
-    --        seq (unsafePerformIO (putStrLn (unpack str))) $ pure (Value Unit)
-

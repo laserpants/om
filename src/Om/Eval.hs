@@ -83,6 +83,7 @@ newtype EvalT m p a = EvalT { unEvalT :: ReaderT (EvalContext p (EvalT m p)) (Ex
       ( Functor
       , Applicative
       , Monad
+      , MonadIO
       , MonadError Error
       , MonadReader (EvalContext p (EvalT m p)) )
 

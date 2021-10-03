@@ -1,7 +1,9 @@
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Om.RunTests where
 
+import Control.Monad.Except
 import Data.Either.Extra (mapLeft)
 import Data.Text (Text, unpack, pack)
 import Om.Eval
@@ -16,6 +18,7 @@ import Om.Prim.Basic
 import Om.Prim.BasicNats
 import Om.Prim.FunLang
 import Test.Hspec
+import Text.Megaparsec
 import qualified Om.Plug.Constructors.Parser as Constructors
 import qualified Om.Plug.Records.Parser as Records
 import qualified Om.Prim.Basic as Basic
@@ -95,44 +98,60 @@ runExprTests = do
             (Right (Value (BasicNats.Int 2)))
 
 parseAndRun
-  :: (PrimType p Bool)
+  :: (Show p, PrimType p Bool)
+  => PrimEnv p
+  -> ParserContext p
+  -> Plugin p (Eval p)
+  -> Text
+  -> Either Text (Result p)
+parseAndRun primEnv context plugins input = do
+    om <- mapLeft (const "Parser error") parse
+    mapLeft (pack . show) (eval om)
+  where
+    parse = runParserStack exprParser input context
+    eval expr = evalExpr expr primEnv plugins
+
+parseAndRunIO
+  :: (Show p, PrimType p Bool)
   => PrimEnvT IO p
   -> ParserContext p
   -> Plugin p (EvalT IO p)
   -> Text
-  -> IO (Either Text (ResultT IO p))
-parseAndRun primEnv context plugins input = do
-    let eexpr = mapLeft (const "Parser error") parse
-    case eexpr of
-        Left e -> pure (Left e)
-        Right expr -> do
-            eres <- eval expr
-            case eres of
-                Left e -> pure (Left (pack (show e)))
-                Right res -> pure (Right res)
+  -> IO (ResultT IO p)
+parseAndRunIO primEnv context plugins input = runExpr >>= \case
+    Left e ->
+        error (show e)
+    Right result -> do
+        putStrLn ("(" <> toString result <> ")")
+        pure result
   where
-    parse = runParserStack exprParser input context
-    eval expr = evalExprT expr primEnv plugins
+    runExpr = do
+        expr <- either (error . show) pure (runParserStack exprParser input context)
+        evalExprT expr primEnv plugins
 
-testRun :: (Eq p) => (Text -> IO (Either Text (ResultT IO p))) -> Text -> Either Text (ResultT IO p) -> SpecWith ()
-testRun fun input expect = do
+testRun :: (Eq p) => (Text -> Either Text (Result p)) -> Text -> Either Text (Result p) -> SpecWith ()
+testRun fun input expect =
+    it (unpack input) (fun input == expect)
+
+testRunIO :: (Eq p) => (Text -> IO (Either Text (ResultT IO p))) -> Text -> Either Text (ResultT IO p) -> SpecWith ()
+testRunIO fun input expect = do
     result <- runIO (fun input)
     it (unpack input) (result == expect)
 
-runBasicExpr :: Text -> IO (Either Text (ResultT IO BasicPrim))
+runBasicExpr :: Text -> Either Text (Result BasicPrim)
 runBasicExpr = parseAndRun
     basicPrelude
     (Constructors.parser <> Basic.parser <> Records.parser)
     recordsPlugin
 
-runBasicNatsExpr :: Text -> IO (Either Text (ResultT IO BasicNatsPrim))
+runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
 runBasicNatsExpr = parseAndRun
     basicNatsPrelude
     (Constructors.parser <> BasicNats.parser <> Records.parser)
     (natsPlugin <> recordsPlugin)
 
-runFunExpr :: Text -> IO (Either Text (ResultT IO FunPrim))
-runFunExpr = parseAndRun
+runFunExpr :: Text -> IO (ResultT IO FunPrim)
+runFunExpr = parseAndRunIO
     funPrelude
     (Constructors.parser <> FunLang.parser <> Records.parser)
     recordsPlugin

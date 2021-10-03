@@ -3,8 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Eval.Strict
   ( ResultT
+  , Result
   , PrimEnvT
+  , PrimEnv
   , evalExprT
+  , evalExpr
   ) where
 
 import Control.Monad.Except

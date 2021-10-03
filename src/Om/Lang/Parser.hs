@@ -111,7 +111,7 @@ exprParser :: Parser p (Om p)
 exprParser = (`makeExprParser` []) $
     (ask >>= contextExprParser)
         <|> try parseApp
-        <|> parens exprParser
+        <|> try (parens exprParser)
         <|> parser
   where
     parser = parseIf
