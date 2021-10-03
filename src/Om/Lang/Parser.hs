@@ -145,7 +145,7 @@ exprParser = (`makeExprParser` []) $
 
     parseLam =
         omLam <$> nameParser <* token "=>"
-              <*>exprParser
+              <*> exprParser
 
     parsePat = do
         keyword "match"
