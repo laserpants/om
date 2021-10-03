@@ -16,10 +16,10 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 parseData :: Parser p (Om p)
 parseData = do
-    uppr <- upperChar
+    chr1 <- upperChar
     rest <- wordParser
     args <- optional (components exprParser)
-    pure (omData (cons uppr rest) (fromMaybe [] args))
+    pure (omData (cons chr1 rest) (fromMaybe [] args))
 
 parser :: ParserContext p
 parser = mempty
