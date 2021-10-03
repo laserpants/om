@@ -97,6 +97,11 @@ runExprTests = do
             ".two({ one = 1, two = 2 })"
             (Right (Value (BasicNats.Int 2)))
 
+    describe "Run expression (fun)" $
+        testRunIO runFunExpr
+            "$concat(\"abcd\", \"efgh\")"
+            (Value (FunLang.String "abcdefgh"))
+
 parseAndRun
   :: (Show p, PrimType p Bool)
   => PrimEnv p
@@ -133,7 +138,7 @@ testRun :: (Eq p) => (Text -> Either Text (Result p)) -> Text -> Either Text (Re
 testRun fun input expect =
     it (unpack input) (fun input == expect)
 
-testRunIO :: (Eq p) => (Text -> IO (Either Text (ResultT IO p))) -> Text -> Either Text (ResultT IO p) -> SpecWith ()
+testRunIO :: (Eq p) => (Text -> IO (ResultT IO p)) -> Text -> ResultT IO p -> SpecWith ()
 testRunIO fun input expect = do
     result <- runIO (fun input)
     it (unpack input) (result == expect)

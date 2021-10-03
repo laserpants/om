@@ -54,13 +54,14 @@ instance (PrimType FunPrim a) => PrimType FunPrim (IO a) where
 
 funPrelude :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => [(Name, m (Value FunPrim m))]
 funPrelude =
-    [ ("eq"    , primFun2 ((==) :: Int -> Int -> Bool))
-    , ("add"   , primFun2 ((+) :: Int -> Int -> Int ))
-    , ("sub"   , primFun2 ((-) :: Int -> Int -> Int ))
-    , ("mul"   , primFun2 ((*) :: Int -> Int -> Int ))
-    , ("div"   , primFun2 (div :: Int -> Int -> Int ))
-    , ("print" , ioPutStrLn)
-    , ("read"  , ioGetLine)
+    [ ("eq"     , primFun2 ((==) :: Int -> Int -> Bool))
+    , ("add"    , primFun2 ((+) :: Int -> Int -> Int))
+    , ("sub"    , primFun2 ((-) :: Int -> Int -> Int))
+    , ("mul"    , primFun2 ((*) :: Int -> Int -> Int))
+    , ("div"    , primFun2 (div :: Int -> Int -> Int))
+    , ("concat" , primFun2 ((<>) :: Text -> Text -> Text))
+    , ("print"  , ioPutStrLn)
+    , ("read"   , ioGetLine)
     ]
 
 ioPutStrLn :: (MonadIO m, MonadReader (EvalContext FunPrim m) m) => m (Value FunPrim m)
