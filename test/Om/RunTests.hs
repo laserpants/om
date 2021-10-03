@@ -14,6 +14,7 @@ import Om.Plug.Records
 import Om.Prim
 import Om.Prim.Basic
 import Om.Prim.BasicNats
+import Om.Prim.FunLang
 import Test.Hspec
 import qualified Om.Plug.Constructors.Parser as Constructors
 import qualified Om.Plug.Records.Parser as Records
@@ -21,6 +22,8 @@ import qualified Om.Prim.Basic as Basic
 import qualified Om.Prim.Basic.Parser as Basic
 import qualified Om.Prim.BasicNats as BasicNats
 import qualified Om.Prim.BasicNats.Parser as BasicNats
+import qualified Om.Prim.FunLang as FunLang
+import qualified Om.Prim.FunLang.Parser as FunLang
 
 runExprTests :: SpecWith ()
 runExprTests = do
@@ -120,3 +123,9 @@ runBasicNatsExpr = parseAndRun
     basicNatsPrelude
     (Constructors.parser <> BasicNats.parser <> Records.parser)
     (natsPlugin <> recordsPlugin)
+
+runFunExpr :: Text -> Either Text (Result FunPrim)
+runFunExpr = parseAndRun
+    funPrelude
+    (Constructors.parser <> FunLang.parser <> Records.parser)
+    recordsPlugin
