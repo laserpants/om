@@ -146,9 +146,7 @@ evalCon
 evalCon con = do
     hook <- ask <#> conHook
     res <- hook con
-    case res of
-        Just v1 -> pure v1
-        Nothing -> pure (Data con [])
+    pure $ fromMaybe (Data con []) res 
 
 evalPat
   :: (MonadError Error m, MonadReader (EvalContext p m) m)
