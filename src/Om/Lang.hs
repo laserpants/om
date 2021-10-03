@@ -35,8 +35,9 @@ data OmF p a
     | Let Name a a                       -- ^ Let binding
     | If a a a                           -- ^ If-clause
     | Lam Name a                         -- ^ Lambda abstraction
-    | Pat a [(Names, a)]                 -- ^ Patten match expression
+    | Pat a [(Names, a)]                 -- ^ Pattern match expression
 
+-- | Language expression
 type Om p = Fix (OmF p)
 
 omVar :: Name -> Om p
@@ -75,6 +76,7 @@ omPat :: Om p -> [(Names, Om p)] -> Om p
 omPat = embed2 Pat
 {-# INLINE omPat #-}
 
+-- | Pattern matching wildcard symbol
 wcard :: Name
 wcard = "$_"
 {-# INLINE wcard #-}
