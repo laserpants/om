@@ -28,14 +28,14 @@ import Om.Util
 import Text.Show.Deriving (deriveShow1)
 
 data OmF p a
-    = Var Name
-    | Con Name
-    | Lit p
-    | App [a]
-    | Let Name a a
-    | If a a a
-    | Lam Name a
-    | Pat a [(Names, a)]
+    = Var Name                           -- ^ Variable
+    | Con Name                           -- ^ Data constructor
+    | Lit p                              -- ^ Literal value
+    | App [a]                            -- ^ Function application
+    | Let Name a a                       -- ^ Let binding
+    | If a a a                           -- ^ If-clause
+    | Lam Name a                         -- ^ Lambda abstraction
+    | Pat a [(Names, a)]                 -- ^ Patten match expression
 
 type Om p = Fix (OmF p)
 
