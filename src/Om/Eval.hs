@@ -15,6 +15,7 @@ module Om.Eval
   , Eval
   , toString
   , runEval
+  , runEvalT
   , primFun1
   , primFun2
   , primFun3
@@ -25,6 +26,7 @@ module Om.Eval
   ) where
 
 import Control.Monad.Except
+import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.List (intersperse)
 import Data.Map.Strict (Map)
@@ -75,19 +77,24 @@ data EvalContext p m = EvalContext
     , patHook :: PatHook p m
     }
 
-newtype Eval p a = Eval { unEval :: ReaderT (EvalContext p (Eval p)) (Either Error) a }
+newtype EvalT m p a = EvalT { unEvalT :: ReaderT (EvalContext p (EvalT m p)) (ExceptT Error m) a }
     deriving
-      ( Functor
-      , Applicative
-      , Monad
-      , MonadError Error
-      , MonadReader (EvalContext p (Eval p)) )
+      ( Functor 
+      , Applicative 
+      , Monad 
+      , MonadError Error 
+      , MonadReader (EvalContext p (EvalT m p)) )
+
+type Eval = EvalT Identity
+
+runEvalT :: (Monad m) => EvalT m p a -> EvalContext p (EvalT m p) -> m (Either Error a)
+runEvalT e = runExceptT . runReaderT (unEvalT e) 
+
+runEval :: Eval p a -> EvalContext p (Eval p) -> Either Error a
+runEval e = runIdentity . runEvalT e
 
 onEvalEnv :: (EvalEnv p m -> EvalEnv p m) -> EvalContext p m -> EvalContext p m
 onEvalEnv f EvalContext{ evalEnv, .. } = EvalContext{ evalEnv = f evalEnv, .. }
-
-runEval :: Eval p a -> EvalContext p (Eval p) -> Either Error a
-runEval = runReaderT . unEval
 
 primFun1 :: (Monad m) => (PrimType p a, PrimType p b) => (a -> b) -> m (Value p m)
 primFun1 f = pure $ PrimFun (fun1 f) []
