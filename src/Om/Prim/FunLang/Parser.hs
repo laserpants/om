@@ -12,8 +12,16 @@ import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
---parseExpr =
---    token "()" $> omLit Unit
+parseVoidFun :: Parser FunPrim (Om FunPrim)
+parseVoidFun = do
+    fun <- parseFun
+    token "("
+    token ")"
+    pure (omApp (fun:[omLit Unit]))
+  where
+    parseFun = try (parens exprParser)
+        <|> omVar <$> (word (withInitial (char '$'))
+        <|> nameParser)
 
 primParser :: Parser FunPrim FunPrim
 primParser = parseTrue
@@ -38,8 +46,8 @@ surroundedBy parser = between parser parser
 
 parser :: ParserContext FunPrim
 parser = mempty
-    { -- contextExprParser = parseExpr
-      contextReserved =
+    { contextExprParser = parseVoidFun
+    , contextReserved =
         [ "true"
         , "false"
         ]

@@ -13,6 +13,8 @@ module Om.Lang.Parser
   , runParserStack
   , token
   , wildcard
+  , withInitial
+  , word
   , wordParser
   ) where
 
@@ -109,7 +111,7 @@ wordParser = word (pack <$> some validChar)
 
 exprParser :: Parser p (Om p)
 exprParser = (`makeExprParser` []) $
-    (ask >>= contextExprParser)
+    try (ask >>= contextExprParser)
         <|> try parseApp
         <|> try (parens exprParser)
         <|> parser
@@ -143,7 +145,7 @@ exprParser = (`makeExprParser` []) $
 
     parseLam =
         omLam <$> nameParser <* token "=>"
-              <*>exprParser 
+              <*>exprParser
 
     parsePat = do
         keyword "match"
