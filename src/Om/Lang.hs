@@ -24,7 +24,7 @@ import Data.Eq.Deriving (deriveEq1)
 import Data.Fix (Fix(..))
 import Data.Functor.Foldable
 import Data.Ord.Deriving (deriveOrd1)
-import Om.Util
+import Om.Util (Name, Names, embed1, embed2, embed3)
 import Text.Show.Deriving (deriveShow1)
 
 data OmF p a
