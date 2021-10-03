@@ -2,12 +2,13 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Om.Eval.Strict
-  ( Result
-  , PrimEnv
-  , evalExpr
+  ( ResultT
+  , PrimEnvT
+  , evalExprT
   ) where
 
 import Control.Monad.Except
+import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.Reader
 import Data.Functor.Foldable
 import Data.Maybe (fromMaybe)
@@ -19,18 +20,20 @@ import Om.Prim
 import Om.Util
 import qualified Data.Map.Strict as Map
 
-type Result p = Value p (Eval p)
+type ResultT m p = Value p (EvalT m p)
+type Result p = ResultT Identity p
 
-type PrimEnv p = [(Name, Eval p (Result p))]
+type PrimEnvT m p = [(Name, EvalT m p (ResultT m p))]
+type PrimEnv p = PrimEnvT Identity p
 
-evalExpr
-  :: (PrimType p Bool)
+evalExprT
+  :: (Monad m, PrimType p Bool)
   => Om p
-  -> PrimEnv p
-  -> Plugin p (Eval p)
-  -> Either Error (Result p)
-evalExpr om prim plug =
-    runEval (eval om) context
+  -> PrimEnvT m p
+  -> Plugin p (EvalT m p)
+  -> m (Either Error (ResultT m p))
+evalExprT om prim plug =
+    runEvalT (eval om) context
   where
     context = EvalContext
         { evalEnv = foldr (uncurry Map.insert) mempty env
@@ -39,6 +42,14 @@ evalExpr om prim plug =
         , patHook = pluginPatHook plug
         }
     env = prim <#> first ("$" <>)
+
+evalExpr
+  :: (PrimType p Bool)
+  => Om p
+  -> PrimEnv p
+  -> Plugin p (Eval p)
+  -> Either Error (Result p)
+evalExpr om = runIdentity <$$> evalExprT om
 
 eval
   :: (PrimType p Bool, MonadError Error m, MonadReader (EvalContext p m) m)

@@ -96,35 +96,42 @@ runExprTests = do
 
 parseAndRun
   :: (PrimType p Bool)
-  => PrimEnv p
+  => PrimEnvT IO p
   -> ParserContext p
-  -> Plugin p (Eval p)
+  -> Plugin p (EvalT IO p)
   -> Text
-  -> Either Text (Result p)
+  -> IO (Either Text (ResultT IO p))
 parseAndRun primEnv context plugins input = do
-    om <- mapLeft (const "Parser error") parse
-    mapLeft (pack . show) (eval om)
+    let eexpr = mapLeft (const "Parser error") parse
+    case eexpr of
+        Left e -> pure (Left e)
+        Right expr -> do
+            eres <- eval expr
+            case eres of
+                Left e -> pure (Left (pack (show e)))
+                Right res -> pure (Right res)
   where
     parse = runParserStack exprParser input context
-    eval expr = evalExpr expr primEnv plugins
+    eval expr = evalExprT expr primEnv plugins
 
-testRun :: (Eq p) => (Text -> Either Text (Result p)) -> Text -> Either Text (Result p) -> SpecWith ()
-testRun fun input expect =
-    it (unpack input) (fun input == expect)
+testRun :: (Eq p) => (Text -> IO (Either Text (ResultT IO p))) -> Text -> Either Text (ResultT IO p) -> SpecWith ()
+testRun fun input expect = do
+    result <- runIO (fun input)
+    it (unpack input) (result == expect)
 
-runBasicExpr :: Text -> Either Text (Result BasicPrim)
+runBasicExpr :: Text -> IO (Either Text (ResultT IO BasicPrim))
 runBasicExpr = parseAndRun
     basicPrelude
     (Constructors.parser <> Basic.parser <> Records.parser)
     recordsPlugin
 
-runBasicNatsExpr :: Text -> Either Text (Result BasicNatsPrim)
+runBasicNatsExpr :: Text -> IO (Either Text (ResultT IO BasicNatsPrim))
 runBasicNatsExpr = parseAndRun
     basicNatsPrelude
     (Constructors.parser <> BasicNats.parser <> Records.parser)
     (natsPlugin <> recordsPlugin)
 
-runFunExpr :: Text -> Either Text (Result FunPrim)
+runFunExpr :: Text -> IO (Either Text (ResultT IO FunPrim))
 runFunExpr = parseAndRun
     funPrelude
     (Constructors.parser <> FunLang.parser <> Records.parser)

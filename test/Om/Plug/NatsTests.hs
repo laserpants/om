@@ -114,8 +114,7 @@ evalNatsTests = do
                 ])
             (Right (Value (BasicNats.Nat 2)))
 
-testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (Result BasicNatsPrim) -> SpecWith ()
-testEvalBasicNats dscr om expect =
+testEvalBasicNats :: Text -> Om BasicNatsPrim -> Either Error (ResultT IO BasicNatsPrim) -> SpecWith ()
+testEvalBasicNats dscr om expect = do
+    result <- runIO (evalExprT om basicNatsPrelude (natsPlugin <> recordsPlugin))
     it (unpack dscr) (expect == result)
-  where
-    result = evalExpr om basicNatsPrelude (natsPlugin <> recordsPlugin)

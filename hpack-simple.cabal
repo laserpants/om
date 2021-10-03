@@ -39,6 +39,8 @@ library
       Om.Prim.Basic.Parser
       Om.Prim.BasicNats
       Om.Prim.BasicNats.Parser
+      Om.Prim.FunLang
+      Om.Prim.FunLang.Parser
       Om.Util
   other-modules:
       Paths_hpack_simple

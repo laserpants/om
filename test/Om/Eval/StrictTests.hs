@@ -16,7 +16,7 @@ evalTests = do
 
     describe "Eval" $ do
 
-        testEvalBasic "8 factorial [40320]"
+        testEvalStrict "8 factorial [40320]"
             --
             --  let
             --    fact =
@@ -49,15 +49,15 @@ evalTests = do
                     (omApp [omVar "fact", omLit (Basic.Int 8)]))
             (Right (Value (Basic.Int 40320)))
 
-        testEvalBasic "Cons(1, Cons(2, (Cons 3, Nil)))"
+        testEvalStrict "Cons(1, Cons(2, (Cons 3, Nil)))"
             example1
             (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
-        testEvalBasic "Cons(1, Cons(2, (Cons 3, Nil)))"
+        testEvalStrict "Cons(1, Cons(2, (Cons 3, Nil)))"
             (omData "Cons" [omLit (Basic.Int 1), omData "Cons" [omLit (Basic.Int 2), omData "Cons" [omLit (Basic.Int 3), omData "Nil" []]]])
             (Right (Data "Cons" [Value (Basic.Int 1), Data "Cons" [Value (Basic.Int 2), Data "Cons" [Value (Basic.Int 3), Data "Nil" []]]]))
 
-        testEvalBasic "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(n, _) = n [1]"
+        testEvalStrict "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(n, _) = n [1]"
             --
             -- match Cons(1, Cons(2, (Cons 3, Nil)))
             --   | Cons(n, _) = n
@@ -65,7 +65,7 @@ evalTests = do
             (omPat example1 [ (["Cons", "n", wcard], omVar "n") ])
             (Right (Value (Basic.Int 1)))
 
-        testEvalBasic "match Nil | Cons(n, _) = n | Nil = 100 [100]"
+        testEvalStrict "match Nil | Cons(n, _) = n | Nil = 100 [100]"
             --
             -- match Nil
             --   | Cons(n, _) = n
@@ -74,7 +74,7 @@ evalTests = do
             (omPat (omData "Nil" []) [ (["Cons", "n", wcard], omVar "n") , (["Nil"], omLit (Basic.Int 100)) ])
             (Right (Value (Basic.Int 100)))
 
-        testEvalBasic "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [2]"
+        testEvalStrict "match Cons(1, Cons(2, Cons (3, Nil))) | Cons(_, xs) = match xs | Cons(n, _) = n end | Nil = 100 [2]"
             --
             -- match Cons(1, Cons(2, Cons (3, Nil)))
             --   | Cons(_, xs) =
@@ -93,26 +93,25 @@ evalTests = do
 
     describe "Eval (failures)" $ do
 
-        testEvalBasic "x"
+        testEvalStrict "x"
             (omVar "x")
             (Left (UnboundIdentifier "x"))
 
-        testEvalBasic "X"
+        testEvalStrict "X"
             (omData "X" [])
             (Right (Data "X" []))
 
-        testEvalBasic "X(1)"
+        testEvalStrict "X(1)"
             (omData "X" [omLit (Basic.Int 1)])
             (Right (Data "X" [Value (Basic.Int 1)]))
 
-        testEvalBasic "if 5 then 1 else 2"
+        testEvalStrict "if 5 then 1 else 2"
             (omIf (omLit (Basic.Int 5))
                 (omLit (Basic.Int 1))
                 (omLit (Basic.Int 2)))
             (Left NonTruthyCondition)
 
-testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> SpecWith ()
-testEvalBasic dscr om expect =
+testEvalStrict :: Text -> Om BasicPrim -> Either Error (ResultT IO BasicPrim) -> SpecWith ()
+testEvalStrict dscr om expect = do
+    result <- runIO (evalExprT om basicPrelude mempty)
     it (unpack dscr) (expect == result)
-  where
-    result = evalExpr om basicPrelude mempty

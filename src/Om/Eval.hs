@@ -13,6 +13,7 @@ module Om.Eval
   , ConHook
   , PatHook
   , Eval
+  , EvalT
   , toString
   , runEval
   , runEvalT
@@ -79,16 +80,16 @@ data EvalContext p m = EvalContext
 
 newtype EvalT m p a = EvalT { unEvalT :: ReaderT (EvalContext p (EvalT m p)) (ExceptT Error m) a }
     deriving
-      ( Functor 
-      , Applicative 
-      , Monad 
-      , MonadError Error 
+      ( Functor
+      , Applicative
+      , Monad
+      , MonadError Error
       , MonadReader (EvalContext p (EvalT m p)) )
 
 type Eval = EvalT Identity
 
 runEvalT :: (Monad m) => EvalT m p a -> EvalContext p (EvalT m p) -> m (Either Error a)
-runEvalT e = runExceptT . runReaderT (unEvalT e) 
+runEvalT e = runExceptT . runReaderT (unEvalT e)
 
 runEval :: Eval p a -> EvalContext p (Eval p) -> Either Error a
 runEval e = runIdentity . runEvalT e

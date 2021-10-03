@@ -16,10 +16,10 @@ import Om.Util
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 
-recordsPlugin :: Plugin p (Eval p)
+recordsPlugin :: (Monad m) => Plugin p (EvalT m p)
 recordsPlugin = plugin (Just recordsVarHook) Nothing (Just recordsPatHook)
 
-recordsVarHook :: VarHook p (Eval p)
+recordsVarHook :: (Monad m) => VarHook p (EvalT m p)
 recordsVarHook var
   | '.' == Text.head var = do
       let closr body = pure (Closure "?0" body mempty)
@@ -42,7 +42,7 @@ getField name [Data f (v:fs)]
   | f == ("{" <> name <> "}") = pure v
   | otherwise                 = getField name fs
 
-recordsPatHook :: PatHook p (Eval p)
+recordsPatHook :: (Monad m) => PatHook p (EvalT m p)
 recordsPatHook (([p, q, r], e):_) val
   | isRowCon p = do
         fun <- do

@@ -204,8 +204,7 @@ evalRecordsTests = do
                     )]))
             (Right (Data "{}" []))
 
-testEvalBasic :: Text -> Om BasicPrim -> Either Error (Result BasicPrim) -> SpecWith ()
-testEvalBasic dscr om expect =
+testEvalBasic :: Text -> Om BasicPrim -> Either Error (ResultT IO BasicPrim) -> SpecWith ()
+testEvalBasic dscr om expect = do
+    result <- runIO (evalExprT om basicPrelude recordsPlugin)
     it (unpack dscr) (expect == result)
-  where
-    result = evalExpr om basicPrelude recordsPlugin

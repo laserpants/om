@@ -19,10 +19,10 @@ import qualified Data.Map.Strict as Map
 newtype NatType = FromInteger Integer
     deriving (Eq, Show, Num)
 
-natsPlugin :: (PrimType p NatType) => Plugin p (Eval p)
+natsPlugin :: (Monad m, PrimType p NatType) => Plugin p (EvalT m p)
 natsPlugin = plugin Nothing (Just natsConHook) (Just natsPatHook)
 
-natsConHook :: (PrimType p NatType) => ConHook p (Eval p)
+natsConHook :: (Monad m, PrimType p NatType) => ConHook p (EvalT m p)
 natsConHook var
 
   | "succ" == var = do
@@ -38,7 +38,7 @@ natsConHook var
 
   | otherwise = pure Nothing
 
-natsPatHook :: (PrimType p NatType) => PatHook p (Eval p)
+natsPatHook :: (Monad m, PrimType p NatType) => PatHook p (EvalT m p)
 natsPatHook ((ps, e):_) val =
     val >>= \case
         Value p ->
