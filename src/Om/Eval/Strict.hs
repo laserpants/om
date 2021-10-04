@@ -68,8 +68,8 @@ eval = cata $ \case
     Lam var e1 -> asks (Closure var e1 . evalEnv)
 
     Let var e1 e2 -> do
-        e <- mfix (\val -> (local  . applyEvalEnv) (Map.insert var (pure val)) e1)
-        (local . applyEvalEnv) (Map.insert var (pure e)) e2
+        e <- mfix (\val -> insertIntoEnv var val e1)
+        insertIntoEnv var e e2
 
     If e1 e2 e3 -> do
         e <- e1
@@ -82,6 +82,9 @@ eval = cata $ \case
 
     Pat expr clauses ->
         evalPat expr clauses
+
+insertIntoEnv :: (MonadReader (EvalContext p m) m) => Name -> Value p m -> m a -> m a
+insertIntoEnv var val = (local  . applyEvalEnv) (Map.insert var (pure val))
 
 toBool :: (PrimType p Bool) => Value p m -> Maybe Bool
 toBool (Value v) = fromPrim v
