@@ -102,6 +102,49 @@ runExprTests = do
             "$concat(\"abcd\", \"efgh\")"
             (Value (FunLang.String "abcdefgh"))
 
+    describe "Run expression (complex)" $
+        testRunIO runFunExpr
+            --
+            -- let
+            --   fst =
+            --     p =>
+            --       match p
+            --         | Pair(f, _) = f
+            --    in
+            --      let
+            --        snd =
+            --          p =>
+            --            match p
+            --              | Pair(_, s) = s
+            --        in
+            --          let
+            --            unfolds =
+            --              f =>
+            --                n =>
+            --                  let
+            --                    x =
+            --                      f( n
+            --                       , _ => unfolds(f, fst(x))
+            --                       )
+            --                    in
+            --                      snd(x)
+            --            in
+            --              let
+            --                foo =
+            --                  n =>
+            --                    next =>
+            --                      Pair( $add(n, 1)
+            --                          , { head = _ => n, tail = _ => next() } )
+            --                in
+            --                  let
+            --                    s =
+            --                      unfolds(foo, 1)
+            --                    in
+            --                      (.head((.tail((.tail((.tail(s))()))()))()))()
+            --
+            "let fst = p => match p | Pair(f, _) = f in let snd = p => match p | Pair(_, s) = s in let unfolds = f => n => let x = f( n , _ => unfolds(f, fst(x))) in snd(x) in let foo = n => next => Pair( $add(n, 1) , { head = _ => n, tail = _ => next() } ) in let s = unfolds(foo, 1) in (.head((.tail((.tail((.tail(s))()))()))()))()"
+            (Value (FunLang.Int 4))
+
 parseAndRun
   :: (Show p, PrimType p Bool)
   => PrimEnv p

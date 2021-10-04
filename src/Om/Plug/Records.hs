@@ -27,7 +27,7 @@ recordsVarHook var
           env <- ask <#> evalEnv
           fromJust (Map.lookup "?0" env) >>= \case
 
-              Data "#" fields ->
+              Data "#" [fields] ->
                   getField (stripPrefix "." var) fields
               _ ->
                   throwError RuntimeError
@@ -37,8 +37,8 @@ recordsVarHook var
 
   | otherwise = pure Nothing
 
-getField :: (Monad m) => Name -> [Value p m] -> m (Value p m)
-getField name [Data f (v:fs)]
+getField :: (Monad m) => Name -> Value p m -> m (Value p m)
+getField name (Data f (v:[fs]))
   | f == ("{" <> name <> "}") = pure v
   | otherwise                 = getField name fs
 

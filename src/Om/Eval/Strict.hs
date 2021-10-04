@@ -11,6 +11,7 @@ module Om.Eval.Strict
   ) where
 
 import Control.Monad.Except
+import Control.Monad.Fix
 import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.Reader
 import Data.Functor.Foldable
@@ -30,7 +31,7 @@ type PrimEnvT m p = [(Name, EvalT m p (ResultT m p))]
 type PrimEnv p = PrimEnvT Identity p
 
 evalExprT
-  :: (Monad m, PrimType p Bool)
+  :: (MonadFix m, PrimType p Bool)
   => Om p
   -> PrimEnvT m p
   -> Plugin p (EvalT m p)
@@ -55,7 +56,7 @@ evalExpr
 evalExpr om = runIdentity <$$> evalExprT om
 
 eval
-  :: (PrimType p Bool, MonadError Error m, MonadReader (EvalContext p m) m)
+  :: (PrimType p Bool, MonadFix m, MonadError Error m, MonadReader (EvalContext p m) m)
   => Om p
   -> m (Value p m)
 eval = cata $ \case
@@ -67,7 +68,7 @@ eval = cata $ \case
     Lam var e1 -> asks (Closure var e1 . evalEnv)
 
     Let var e1 e2 -> do
-        e <- e1
+        e <- mfix (\val -> (local  . applyEvalEnv) (Map.insert var (pure val)) e1)
         (local . applyEvalEnv) (Map.insert var (pure e)) e2
 
     If e1 e2 e3 -> do
@@ -146,7 +147,7 @@ evalCon
 evalCon con = do
     hook <- ask <#> conHook
     res <- hook con
-    pure $ fromMaybe (Data con []) res 
+    pure $ fromMaybe (Data con []) res
 
 evalPat
   :: (MonadError Error m, MonadReader (EvalContext p m) m)
