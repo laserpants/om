@@ -42,6 +42,7 @@ library
       Om.Prim.FunLang
       Om.Prim.FunLang.Parser
       Om.Util
+      Om2.Lang
   other-modules:
       Paths_hpack_simple
   hs-source-dirs:
